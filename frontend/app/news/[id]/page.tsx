@@ -35,7 +35,8 @@ export default function NewsDetailPage() {
         const fetchNewsDetail = async () => {
             try {
                 setLoading(true)
-                const response = await axios.get<NewsDetail>(`http://localhost:8000/api/v1/news/${id}`)
+                const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"
+                const response = await axios.get<NewsDetail>(`${API_URL}/news/${id}`)
                 setNews(response.data)
                 setError(null)
             } catch (err) {

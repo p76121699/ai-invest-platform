@@ -13,7 +13,8 @@ export default function Dashboard() {
   useEffect(() => {
     async function fetchTopNews() {
       try {
-        const res = await axios.get("http://127.0.0.1:8000/api/v1/news?limit=3")
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"
+        const res = await axios.get(`${API_URL}/news?limit=3`)
         if (Array.isArray(res.data)) {
           setNews(res.data)
         } else if (res.data.news) {

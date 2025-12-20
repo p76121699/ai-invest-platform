@@ -1,7 +1,8 @@
 
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8000/api/v1';
+// ✅ Correct Practice: Read from Environment Variable
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
 export const auth = {
     login: async (email: string, password: string) => {

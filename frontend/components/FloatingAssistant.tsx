@@ -35,8 +35,9 @@ export function FloatingAssistant() {
         // Add placeholder bot message for streaming
         setMessages(prev => [...prev, { role: 'bot', text: "" }])
 
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"
         try {
-            const res = await fetch("http://localhost:8000/api/v1/assistant/chat", {
+            const res = await fetch(`${API_URL}/assistant/chat`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ message: userMsg })

@@ -32,6 +32,8 @@ origins = [
     "http://localhost:3000",
     "http://localhost",
     "http://127.0.0.1:3000",
+    "https://ai-invest-platform-6tk17dou0-koda-obsidians-projects.vercel.app", # Vercel Frontend
+    "https://ai-invest-platform.vercel.app", # Generic Vercel (optional)
 ]
 
 app.add_middleware(
