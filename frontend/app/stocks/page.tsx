@@ -26,7 +26,8 @@ export default function StockDashboard() {
         try {
             const tickers = tickerString.split(',').map(t => t.trim()).filter(t => t).join(',')
             if (!tickers) return []
-            const res = await axios.get(`http://127.0.0.1:8000/api/v1/stocks/quotes?tickers=${tickers}`)
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+            const res = await axios.get(`${API_URL}/stocks/quotes?tickers=${tickers}`)
             if (Array.isArray(res.data)) {
                 return res.data
             }

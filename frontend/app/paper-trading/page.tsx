@@ -66,7 +66,8 @@ export default function PaperTradingPage() {
         try {
             const token = localStorage.getItem('token')
             if (!token) return
-            const res = await axios.get("http://127.0.0.1:8000/api/v1/portfolio/", {
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+            const res = await axios.get(`${API_URL}/portfolio/`, {
                 headers: { Authorization: `Bearer ${token}` }
             })
             // Sort by date desc
@@ -142,7 +143,8 @@ export default function PaperTradingPage() {
     const handleDelete = async (id: string) => {
         try {
             const token = localStorage.getItem('token')
-            await axios.delete(`http://127.0.0.1:8000/api/v1/portfolio/${id}`, {
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+            await axios.delete(`${API_URL}/portfolio/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             })
             toast({ title: "Trade Removed" })
@@ -159,7 +161,8 @@ export default function PaperTradingPage() {
         // in a simulation environment, quick reset is often desired.
         try {
             const token = localStorage.getItem('token')
-            await axios.delete(`http://127.0.0.1:8000/api/v1/portfolio/reset`, {
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+            await axios.delete(`${API_URL}/portfolio/reset`, {
                 headers: { Authorization: `Bearer ${token}` }
             })
             toast({ title: "Portfolio Reset", description: "All trades cleared." })
@@ -188,7 +191,8 @@ export default function PaperTradingPage() {
         try {
             // Fetch quote to show preview
             const token = localStorage.getItem('token')
-            const res = await axios.get(`http://127.0.0.1:8000/api/v1/stocks/quote?ticker=${formTicker.toUpperCase()}`, {
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+            const res = await axios.get(`${API_URL}/stocks/quote?ticker=${formTicker.toUpperCase()}`, {
                 headers: { Authorization: `Bearer ${token}` }
             })
             // API returns StockQuote object { ticker, price, ... }
@@ -235,7 +239,8 @@ export default function PaperTradingPage() {
                 date: new Date().toISOString()
             }
 
-            await axios.post("http://127.0.0.1:8000/api/v1/portfolio/", payload, {
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+            await axios.post(`${API_URL}/portfolio/`, payload, {
                 headers: { Authorization: `Bearer ${token}` }
             })
 

@@ -42,7 +42,8 @@ export default function NewsPage() {
         try {
             const currentSkip = reset ? 0 : page * limit
             // Use limit+1 to peek if there's more
-            const res = await axios.get(`http://127.0.0.1:8000/api/v1/news?limit=${limit}&skip=${currentSkip}`)
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+            const res = await axios.get(`${API_URL}/news?limit=${limit}&skip=${currentSkip}`)
 
             let newItems: NewsItem[] = []
             if (Array.isArray(res.data)) {
@@ -89,7 +90,8 @@ export default function NewsPage() {
 
     const refreshNews = async () => {
         try {
-            await axios.post("http://127.0.0.1:8000/api/v1/news/refresh")
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+            await axios.post(`${API_URL}/news/refresh`)
             fetchNews(true)
         } catch (error) {
             console.error("Failed to refresh news", error)

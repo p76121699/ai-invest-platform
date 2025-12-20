@@ -127,7 +127,8 @@ function StockDetailDialog({ open, onOpenChange, ticker }: { open: boolean, onOp
     useEffect(() => {
         if (open && ticker) {
             setLoading(true)
-            axios.get(`http://127.0.0.1:8000/api/v1/stocks/history?ticker=${ticker}&period=1y`)
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+            axios.get(`${API_URL}/stocks/history?ticker=${ticker}&period=1y`)
                 .then(res => {
                     setHistory(res.data.history)
                 })

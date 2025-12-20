@@ -79,7 +79,8 @@ export default function BacktestPage() {
                 start: params.start,
                 end: params.end
             }
-            const res = await axios.post("http://127.0.0.1:8000/api/v1/backtest/run", payload)
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+            const res = await axios.post(`${API_URL}/backtest/run`, payload)
             setResult(res.data)
             toast({ title: "Backtest Complete", description: `Simulation finished for ${params.ticker}` })
         } catch (e) {
