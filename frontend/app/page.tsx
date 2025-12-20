@@ -6,6 +6,7 @@ import { MarketHeatmap } from "@/components/MarketHeatmap"
 
 import axios from "axios"
 import { useEffect, useState } from "react"
+import { API_URL } from "@/lib/auth"
 
 export default function Dashboard() {
   const [news, setNews] = useState<any[]>([])
@@ -13,7 +14,6 @@ export default function Dashboard() {
   useEffect(() => {
     async function fetchTopNews() {
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"
         const res = await axios.get(`${API_URL}/news?limit=3`)
         if (Array.isArray(res.data)) {
           setNews(res.data)

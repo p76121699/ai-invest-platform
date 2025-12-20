@@ -1,8 +1,12 @@
 
 import axios from 'axios';
 
-// ✅ Correct Practice: Read from Environment Variable
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+// ✅ Correct Practice: Centralized Configuration
+// NEXT_PUBLIC_API_URL should be the HOST (e.g. https://backend.render.com), NOT including /api/v1
+// If user included /api/v1 in env var, we strip it to avoid duplication, or we just advise user.
+// Safest: Assume env var is HOST.
+const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/api\/v1\/?$/, '');
+export const API_URL = `${BASE_URL}/api/v1`;
 
 export const auth = {
     login: async (email: string, password: string) => {

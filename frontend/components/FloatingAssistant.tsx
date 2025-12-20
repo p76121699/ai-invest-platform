@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import { Bot, Send, X, Terminal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { API_URL } from "@/lib/auth"
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useUI } from "@/components/providers/ui-context"
@@ -35,7 +36,7 @@ export function FloatingAssistant() {
         // Add placeholder bot message for streaming
         setMessages(prev => [...prev, { role: 'bot', text: "" }])
 
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"
+        // const API_URL is imported from lib/auth now
         try {
             const res = await fetch(`${API_URL}/assistant/chat`, {
                 method: "POST",

@@ -5,8 +5,11 @@ import { useParams } from "next/navigation"
 import axios from "axios"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { API_URL } from "@/lib/auth"
 
 interface NewsDetail {
     id: string
@@ -35,7 +38,6 @@ export default function NewsDetailPage() {
         const fetchNewsDetail = async () => {
             try {
                 setLoading(true)
-                const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"
                 const response = await axios.get<NewsDetail>(`${API_URL}/news/${id}`)
                 setNews(response.data)
                 setError(null)
