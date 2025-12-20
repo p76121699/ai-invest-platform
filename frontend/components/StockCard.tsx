@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { TrendingUp, TrendingDown, AlertCircle, Star, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { ArrowUp, ArrowDown, Activity, TrendingUp, TrendingDown, X, Bell, Star, AlertCircle } from "lucide-react"
 import {
     Area,
     AreaChart,
@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import axios from "axios"
+import { API_URL } from "@/lib/auth"
 
 export interface StockQuote {
     ticker: string
@@ -127,7 +128,6 @@ function StockDetailDialog({ open, onOpenChange, ticker }: { open: boolean, onOp
     useEffect(() => {
         if (open && ticker) {
             setLoading(true)
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
             axios.get(`${API_URL}/stocks/history?ticker=${ticker}&period=1y`)
                 .then(res => {
                     setHistory(res.data.history)

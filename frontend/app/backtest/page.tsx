@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -9,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, ResponsiveContainer } from "recharts"
 import { Info } from "lucide-react"
 import axios from "axios"
+import { API_URL } from "@/lib/auth"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -79,7 +81,6 @@ export default function BacktestPage() {
                 start: params.start,
                 end: params.end
             }
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
             const res = await axios.post(`${API_URL}/backtest/run`, payload)
             setResult(res.data)
             toast({ title: "Backtest Complete", description: `Simulation finished for ${params.ticker}` })
@@ -220,12 +221,12 @@ export default function BacktestPage() {
                             />
                             <StatCard
                                 label="Total Return"
-                                value={result ? `${(stats.total_return * 100).toFixed(1)}%` : "-"}
+                                value={result ? `${(stats.total_return * 100).toFixed(1)}% ` : "-"}
                                 tooltip="The total percentage gain or loss over the period."
                             />
                             <StatCard
                                 label="Max Drawdown"
-                                value={result ? `${(stats.max_drawdown * 100).toFixed(1)}%` : "-"}
+                                value={result ? `${(stats.max_drawdown * 100).toFixed(1)}% ` : "-"}
                                 tooltip="The largest single drop from peak to bottom in the portfolio value."
                             />
                             <StatCard

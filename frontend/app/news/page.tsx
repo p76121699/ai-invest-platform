@@ -5,7 +5,7 @@ import { NewsCard } from "@/components/NewsCard"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import axios from "axios"
-import { auth, watchlist } from "@/lib/auth"
+import { auth, watchlist, API_URL } from "@/lib/auth"
 import { Separator } from "@/components/ui/separator"
 import { Flame, Newspaper } from "lucide-react"
 
@@ -42,7 +42,6 @@ export default function NewsPage() {
         try {
             const currentSkip = reset ? 0 : page * limit
             // Use limit+1 to peek if there's more
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
             const res = await axios.get(`${API_URL}/news?limit=${limit}&skip=${currentSkip}`)
 
             let newItems: NewsItem[] = []
@@ -88,9 +87,11 @@ export default function NewsPage() {
         }
     }
 
+    // Add import at top manually via multi_replace if needed, or assume it's there
+    // Actually replace_file_content handles one block. I need to handle imports too.
+    // Let's use multi_replace for this file to ensure import is added.
     const refreshNews = async () => {
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
             await axios.post(`${API_URL}/news/refresh`)
             fetchNews(true)
         } catch (error) {

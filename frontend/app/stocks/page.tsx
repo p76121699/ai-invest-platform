@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Search, Star } from "lucide-react"
 import axios from "axios"
-import { auth, watchlist } from "@/lib/auth"
+import { API_URL, auth, watchlist } from "@/lib/auth"
 import Link from 'next/link'
 import { useToast } from "@/components/ui/use-toast"
 import { StockCard, StockQuote } from "@/components/StockCard"
@@ -26,7 +26,6 @@ export default function StockDashboard() {
         try {
             const tickers = tickerString.split(',').map(t => t.trim()).filter(t => t).join(',')
             if (!tickers) return []
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
             const res = await axios.get(`${API_URL}/stocks/quotes?tickers=${tickers}`)
             if (Array.isArray(res.data)) {
                 return res.data

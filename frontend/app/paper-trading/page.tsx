@@ -4,13 +4,14 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import axios from "axios"
+import { API_URL } from "@/lib/auth"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useToast } from "@/components/ui/use-toast"
 import { Plus, Trash, TrendingUp, TrendingDown, DollarSign, Wallet, Briefcase } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import axios from "axios"
 import { RefreshCcw } from "lucide-react"
 import { StockCard } from "@/components/StockCard"
 
@@ -66,7 +67,6 @@ export default function PaperTradingPage() {
         try {
             const token = localStorage.getItem('token')
             if (!token) return
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
             const res = await axios.get(`${API_URL}/portfolio/`, {
                 headers: { Authorization: `Bearer ${token}` }
             })
@@ -143,7 +143,6 @@ export default function PaperTradingPage() {
     const handleDelete = async (id: string) => {
         try {
             const token = localStorage.getItem('token')
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
             await axios.delete(`${API_URL}/portfolio/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             })
@@ -161,7 +160,6 @@ export default function PaperTradingPage() {
         // in a simulation environment, quick reset is often desired.
         try {
             const token = localStorage.getItem('token')
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
             await axios.delete(`${API_URL}/portfolio/reset`, {
                 headers: { Authorization: `Bearer ${token}` }
             })
@@ -191,7 +189,6 @@ export default function PaperTradingPage() {
         try {
             // Fetch quote to show preview
             const token = localStorage.getItem('token')
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
             const res = await axios.get(`${API_URL}/stocks/quote?ticker=${formTicker.toUpperCase()}`, {
                 headers: { Authorization: `Bearer ${token}` }
             })
@@ -239,7 +236,6 @@ export default function PaperTradingPage() {
                 date: new Date().toISOString()
             }
 
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
             await axios.post(`${API_URL}/portfolio/`, payload, {
                 headers: { Authorization: `Bearer ${token}` }
             })
