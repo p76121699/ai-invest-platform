@@ -11,6 +11,7 @@ SQLAlchemy>=2.0.25
 alembic
 asyncpg  # Required for Postgres on Render
 aiosqlite # Keep for local dev fallback or easy testing
+greenlet
 
 # Environment
 python-dotenv
