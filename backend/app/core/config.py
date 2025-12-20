@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         # Fallback to SQLite if Postgres fails or for local dev simplicity
         if os.getenv("USE_SQLITE", "true") == "true":
-             return "sqlite+aiosqlite:///./sql_app.db"
+             return "sqlite+aiosqlite:///e:/project3/backend/sql_app.db"
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
 
