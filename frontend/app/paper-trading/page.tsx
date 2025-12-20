@@ -67,7 +67,7 @@ export default function PaperTradingPage() {
         try {
             const token = localStorage.getItem('token')
             if (!token) return
-            const res = await axios.get(`${API_URL}/portfolio/`, {
+            const res = await axios.get(`${API_URL}/portfolio`, {
                 headers: { Authorization: `Bearer ${token}` }
             })
             // Sort by date desc
@@ -236,7 +236,7 @@ export default function PaperTradingPage() {
                 date: new Date().toISOString()
             }
 
-            await axios.post(`${API_URL}/portfolio/`, payload, {
+            await axios.post(`${API_URL}/portfolio`, payload, {
                 headers: { Authorization: `Bearer ${token}` }
             })
 

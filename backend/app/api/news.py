@@ -9,7 +9,7 @@ import uuid
 
 router = APIRouter()
 
-@router.get("/", response_model=List[schemas.News]) # /news in main.py, so this is /news/
+@router.get("", response_model=List[schemas.News]) # /news
 async def get_latest_news(limit: int = 50, skip: int = 0, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(models.News).order_by(models.News.published_at.desc()).offset(skip).limit(limit))
     news_items = result.scalars().all()

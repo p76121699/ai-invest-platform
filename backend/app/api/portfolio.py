@@ -8,7 +8,7 @@ import uuid
 
 router = APIRouter()
 
-@router.get("/", response_model=List[schemas.Trade])
+@router.get("", response_model=List[schemas.Trade])
 async def get_trades(
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
@@ -16,7 +16,7 @@ async def get_trades(
     result = await db.execute(select(models.Trade).where(models.Trade.user_id == current_user.id).order_by(models.Trade.date.desc()))
     return result.scalars().all()
 
-@router.post("/", response_model=schemas.Trade)
+@router.post("", response_model=schemas.Trade)
 async def create_trade(
     trade: schemas.TradeCreate,
     db: AsyncSession = Depends(get_db),
