@@ -21,6 +21,8 @@ class Settings(BaseSettings):
         if self.DATABASE_URL:
             if self.DATABASE_URL.startswith("postgres://"):
                 return self.DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
+            if self.DATABASE_URL.startswith("postgresql://"):
+                return self.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
             return self.DATABASE_URL
         
         if os.getenv("USE_SQLITE", "true") == "true":
