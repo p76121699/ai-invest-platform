@@ -17,6 +17,11 @@ async def scheduled_news_crawl():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Create Tables (Simple migration alternative for MVP)
+    from app.database import engine, Base
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    
     # Startup
     scheduler.add_job(scheduled_news_crawl, 'interval', minutes=60)
     scheduler.start()
