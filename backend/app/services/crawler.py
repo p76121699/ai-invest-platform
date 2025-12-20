@@ -78,8 +78,7 @@ def parse_feed_sync(xml_content):
     return feedparser.parse(xml_content)
 
 def log_debug(msg):
-    with open("e:/project3/crawler_debug.log", "a", encoding="utf-8") as f:
-        f.write(f"{datetime.now()}: {msg}\n")
+    print(f"{datetime.now()}: {msg}") # Use stdout for proper container logging
 
 
 def clean_html_static(html_content):
