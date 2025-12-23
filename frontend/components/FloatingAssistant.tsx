@@ -33,41 +33,29 @@ export function FloatingAssistant() {
         setInput("")
         setLoading(true)
 
-        // Add placeholder bot message for streaming
+        // Add placeholder bot message
         setMessages(prev => [...prev, { role: 'bot', text: "" }])
 
-        // const API_URL is imported from lib/auth now
         try {
+            // Updated to match Gemini API Schema: { content: string }
             const res = await fetch(`${API_URL}/assistant/chat`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: userMsg })
+                body: JSON.stringify({ content: userMsg })
             })
 
-            if (!res.body) return
+            const data = await res.json()
 
-            const reader = res.body.getReader()
-            const decoder = new TextDecoder()
-            let done = false
-            let accumulatedText = ""
+            setMessages(prev => {
+                const newMsgs = [...prev]
+                newMsgs[newMsgs.length - 1] = { role: 'bot', text: data.response || "No response received." }
+                return newMsgs
+            })
 
-            while (!done) {
-                const { value, done: doneReading } = await reader.read()
-                done = doneReading
-                const chunkValue = decoder.decode(value, { stream: true })
-                accumulatedText += chunkValue
-
-                // Update last message
-                setMessages(prev => {
-                    const newMsgs = [...prev]
-                    newMsgs[newMsgs.length - 1] = { role: 'bot', text: accumulatedText }
-                    return newMsgs
-                })
-            }
         } catch (e) {
             setMessages(prev => {
                 const newMsgs = [...prev]
-                newMsgs[newMsgs.length - 1] = { role: 'bot', text: "Sorry, I am having trouble connecting to the server." }
+                newMsgs[newMsgs.length - 1] = { role: 'bot', text: "Sorry, I am having trouble connecting to the AI service." }
                 return newMsgs
             })
         } finally {
@@ -99,10 +87,10 @@ export function FloatingAssistant() {
                 {/* Header */}
                 <div className="p-4 border-b bg-card flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-2 text-foreground">
-                        <Terminal className="w-5 h-5 text-green-400" />
-                        <span className="font-semibold">AI Market Analyst</span>
+                        <Terminal className="w-5 h-5 text-purple-400" />
+                        <span className="font-semibold">AI Investment Assistant</span>
                         <span className="text-xs text-zinc-500 font-mono border border-zinc-700 px-2 py-0.5 rounded-full">
-                            LLAMA 3.2
+                            Gemini 1.5
                         </span>
                     </div>
                     <Button

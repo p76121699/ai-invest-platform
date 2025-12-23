@@ -45,3 +45,4 @@ nltk
 
 # Utils
 requests
+google-generativeai

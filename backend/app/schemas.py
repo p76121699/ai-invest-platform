@@ -18,6 +18,9 @@ class UserBase(BaseModel):
 class Message(BaseModel):
     message: str
 
+class ChatMessage(BaseModel):
+    content: str
+
 class UserCreate(UserBase):
     password: str
 

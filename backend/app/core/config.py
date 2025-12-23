@@ -7,7 +7,10 @@ class Settings(BaseSettings):
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-super-secret-key-change-it")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7 # 7 Days
-
+    
+    # AI Settings
+    GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
+    
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "postgres")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "postgres")
     POSTGRES_SERVER: str = os.getenv("POSTGRES_SERVER", "db")
@@ -15,7 +18,7 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = os.getenv("POSTGRES_DB", "ai_invest")
     USE_SQLITE: str = "false"
     DATABASE_URL: str = os.getenv("DATABASE_URL", "")
-
+    
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         if self.DATABASE_URL:
