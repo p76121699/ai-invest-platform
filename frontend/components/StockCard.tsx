@@ -197,6 +197,7 @@ function StockDetailDialog({ open, onOpenChange, ticker }: { open: boolean, onOp
                                         contentStyle={{ backgroundColor: '#0f172a', color: '#f8fafc', border: '1px solid #1e293b', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                                         labelStyle={{ color: '#94a3b8', marginBottom: '0.5rem' }}
                                         cursor={{ stroke: '#64748b', strokeWidth: 1, strokeDasharray: '4 4' }}
+                                        formatter={(value: any) => typeof value === 'number' ? value.toFixed(3) : value}
                                     />
                                     <Legend verticalAlign="top" height={36} iconType="circle" />
 

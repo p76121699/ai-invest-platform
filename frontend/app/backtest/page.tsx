@@ -247,7 +247,7 @@ export default function BacktestPage() {
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis dataKey="day" />
                                         <YAxis domain={['auto', 'auto']} />
-                                        <ChartTooltip />
+                                        <ChartTooltip formatter={(value: any) => typeof value === 'number' ? value.toFixed(3) : value} />
                                         <Line type="monotone" dataKey="equity" stroke="#10b981" strokeWidth={2} dot={false} />
                                     </LineChart>
                                 </ResponsiveContainer>
