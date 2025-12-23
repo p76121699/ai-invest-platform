@@ -34,7 +34,20 @@ export const auth = {
 
     getToken: () => localStorage.getItem('token'),
     getUserEmail: () => localStorage.getItem('user_email'),
-    isAuthenticated: () => !!localStorage.getItem('token')
+    isAuthenticated: () => !!localStorage.getItem('token'),
+
+    deleteAccount: async () => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        try {
+            await axios.delete(`${API_URL}/auth/me`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            auth.logout(); // Local cleanup
+        } catch (e) {
+            handleAuthError(e);
+        }
+    }
 };
 
 const handleAuthError = (error: any) => {

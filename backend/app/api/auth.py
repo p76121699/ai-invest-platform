@@ -61,3 +61,30 @@ async def register(
 
     await db.refresh(user)
     return user
+
+@router.delete("/me", response_model=schemas.Message)
+async def delete_me(
+    current_user: models.User = Depends(deps.get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    from sqlalchemy import delete
+    # Manual Cascade Delete to ensure everything is gone
+    # 1. Delete Trades
+    await db.execute(delete(models.Trade).where(models.Trade.user_id == current_user.id))
+    # 2. Delete Watchlist
+    await db.execute(delete(models.Watchlist).where(models.Watchlist.user_id == current_user.id))
+    # 3. Delete Backtest Runs
+    await db.execute(delete(models.BacktestRun).where(models.BacktestRun.user_id == current_user.id))
+    # 4. Delete API Keys
+    await db.execute(delete(models.ApiKey).where(models.ApiKey.user_id == current_user.id))
+    
+    # 5. Delete User
+    await db.delete(current_user)
+    
+    try:
+        await db.commit()
+    except Exception as e:
+        print(f"Delete failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+        
+    return {"message": "Account and all related data deleted successfully"}

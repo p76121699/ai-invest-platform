@@ -50,6 +50,7 @@ export default function SettingsPage() {
                 <TabsList>
                     <TabsTrigger value="profile">Profile</TabsTrigger>
                     <TabsTrigger value="api-keys">API Keys</TabsTrigger>
+                    <TabsTrigger value="account" className="text-red-400 data-[state=active]:text-red-400">Account</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="profile">
@@ -103,7 +104,88 @@ export default function SettingsPage() {
                         </CardContent>
                     </Card>
                 </TabsContent>
-            </Tabs>
-        </div>
+            </TabsContent>
+
+            <TabsContent value="account">
+                <Card className="border-red-900/50 bg-red-950/10">
+                    <CardHeader>
+                        <CardTitle className="text-red-500">Danger Zone</CardTitle>
+                        <CardDescription className="text-red-400">
+                            Irreversible actions for your account.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between p-4 border border-red-900 rounded-lg bg-red-950/20">
+                            <div className="space-y-1">
+                                <h4 className="text-sm font-medium text-red-100">Delete Account</h4>
+                                <p className="text-xs text-red-300">
+                                    Permanently remove your account and all associated data (Portfolio, Watchlist, Backtest history).
+                                </p>
+                            </div>
+                            <DeleteAccountDialog />
+                        </div>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+        </Tabs>
+        </div >
+    )
+}
+
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogFooter,
+    DialogClose
+} from "@/components/ui/dialog"
+import { auth } from "@/lib/auth"
+import { useRouter } from "next/navigation"
+
+function DeleteAccountDialog() {
+    const [open, setOpen] = useState(false)
+    const [deleting, setDeleting] = useState(false)
+    const router = useRouter()
+    const { toast } = useToast()
+
+    const handleDelete = async () => {
+        setDeleting(true)
+        try {
+            await auth.deleteAccount()
+            toast({ title: "Account Deleted", description: "Your account has been permanently removed." })
+            // Redirect is handled in auth.logout() but let's be safe
+            router.push('/login')
+        } catch (e) {
+            toast({ variant: "destructive", title: "Error", description: "Failed to delete account." })
+            setDeleting(false)
+            setOpen(false)
+        }
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button variant="destructive">Delete Account</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px] border-red-900 bg-slate-950">
+                <DialogHeader>
+                    <DialogTitle className="text-red-500">Delete Account?</DialogTitle>
+                    <DialogDescription className="text-slate-400">
+                        This action cannot be undone. This will permanently delete your account and remove your data from our servers.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="mt-4 gap-2">
+                    <Button variant="outline" onClick={() => setOpen(false)} disabled={deleting}>
+                        Cancel
+                    </Button>
+                    <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+                        {deleting ? "Deleting..." : "Yes, Delete Account"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     )
 }
