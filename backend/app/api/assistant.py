@@ -17,7 +17,7 @@ async def get_ai_assistant_response(user_input: str):
     
     try:
         # Try preferred model: gemini-1.5-flash
-        model = genai.GenerativeModel('gemini-1.5-flash-latest')
+        model = genai.GenerativeModel('gemini-3-flash-preview')
         prompt = f"你是一位專業的投資助理，請針對以下問題提供建議：{user_input}"
         response = await asyncio.to_thread(model.generate_content, prompt)
         return {"response": response.text}
