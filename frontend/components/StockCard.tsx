@@ -14,7 +14,7 @@ import {
     CartesianGrid,
     Legend
 } from "recharts"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import axios from "axios"
@@ -146,6 +146,9 @@ function StockDetailDialog({ open, onOpenChange, ticker }: { open: boolean, onOp
                         <span className="text-2xl text-slate-400 font-light">Technical Analysis</span>
                         {loading && <span className="text-sm font-normal text-muted-foreground animate-pulse ml-auto">Updating data...</span>}
                     </DialogTitle>
+                    <DialogDescription className="text-slate-400">
+                        Detailed market analysis and technical indicators for {ticker}.
+                    </DialogDescription>
                 </DialogHeader>
 
                 <div className="flex-1 flex flex-col gap-4 min-h-0 pt-4">

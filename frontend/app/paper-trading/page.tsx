@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useToast } from "@/components/ui/use-toast"
 import { Plus, Trash, TrendingUp, TrendingDown, DollarSign, Wallet, Briefcase } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RefreshCcw } from "lucide-react"
 import { StockCard } from "@/components/StockCard"
@@ -271,6 +271,9 @@ export default function PaperTradingPage() {
                         <DialogContent className="max-w-4xl">
                             <DialogHeader>
                                 <DialogTitle>Place Order</DialogTitle>
+                                <DialogDescription>
+                                    Create a new buy or sell order for your paper trading portfolio.
+                                </DialogDescription>
                             </DialogHeader>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
                                 <div className="space-y-4">

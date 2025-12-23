@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from email.utils import parsedate_to_datetime
 from textblob import TextBlob
-from datetime import datetime
+from datetime import datetime, timezone
 from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright
 from app import models
@@ -395,7 +395,11 @@ async def fetch_and_process_news(db: AsyncSession):
                     published_at = datetime.utcnow()
                     if pub_date_str:
                         try:
-                            published_at = parsedate_to_datetime(pub_date_str)
+                            dt = parsedate_to_datetime(pub_date_str)
+                            # Convert to simplified UTC naive datetime for Postgres TIMESTAMP compatibility
+                            if dt.tzinfo:
+                                dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+                            published_at = dt
                         except: pass
 
                     if existing_item:
