@@ -92,3 +92,6 @@ def run_backtest(ticker, start, end, strategy):
     except Exception as e:
         traceback.print_exc()
         return {"error": str(e), "equity_curve": [], "stats": {}}
+    finally:
+        import gc
+        gc.collect()

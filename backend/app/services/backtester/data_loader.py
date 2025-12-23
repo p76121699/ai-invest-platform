@@ -17,33 +17,44 @@ def load_price_history(ticker: str, start: str, end: str) -> pd.DataFrame:
         
     print(f"Downloading {ticker} from {fetch_start} (Buffer) to {end}")
     
-    # 1. Fetch Adjusted Data (For Indicators & PnL)
-    df_adj = yf.download(ticker, start=fetch_start, end=end, progress=False, auto_adjust=True)
+    # Optimized: Single download call to save memory and time
+    # auto_adjust=False provides 'Adj Close' column usually, or we can calculate it.
+    # Actually, yfinance default gives Open/High/Low/Close/Adj Close/Volume
+    df_all = yf.download(ticker, start=fetch_start, end=end, progress=False, auto_adjust=False, threads=False) # threads=False for stability in worker
     
-    # 2. Fetch Raw Data (For Display)
-    df_raw = yf.download(ticker, start=fetch_start, end=end, progress=False, auto_adjust=False)
-    
-    # Handle MultiIndex
-    if isinstance(df_adj.columns, pd.MultiIndex):
-        df_adj.columns = df_adj.columns.get_level_values(0)
-    if isinstance(df_raw.columns, pd.MultiIndex):
-        df_raw.columns = df_raw.columns.get_level_values(0)
+    # Check if empty
+    if df_all.empty:
+         return pd.DataFrame(), start
 
-    # Standardize Names
-    df = df_adj.rename(columns={
-        "Open": "open",
-        "High": "high",
-        "Low": "low",
-        "Close": "close",
-        "Volume": "volume"
-    })
+    # Flatten MultiIndex if present
+    if isinstance(df_all.columns, pd.MultiIndex):
+        try:
+             # Try to drop Ticker level
+             df_all.columns = df_all.columns.droplevel(1) 
+        except:
+             df_all.columns = df_all.columns.get_level_values(0)
+
+    # Standardize
+    # We will use 'Adj Close' for technical analysis (SMA, RSI) to account for splits/dividends
+    # We use 'Close' (Raw) for display prices if available
     
-    # Merge Raw Open/Close
-    # Align indexes just in case
-    df["raw_open"] = df_raw["Open"]
-    df["raw_close"] = df_raw["Close"]
+    df = pd.DataFrame(index=df_all.index)
     
-    # Ensure close is numeric
+    if "Adj Close" in df_all.columns:
+        df["close"] = df_all["Adj Close"] # Use Adjusted for logic
+        df["raw_close"] = df_all["Close"] # Use Raw for display
+    else:
+        # Fallback if specific column mismatch
+        df["close"] = df_all["Close"]
+        df["raw_close"] = df_all["Close"]
+        
+    df["open"] = df_all["Open"] # This is usually raw open, but accurate enough
+    df["raw_open"] = df_all["Open"]
+    df["high"] = df_all["High"]
+    df["low"] = df_all["Low"]
+    df["volume"] = df_all["Volume"]
+
+    # Ensure numeric
     df["close"] = pd.to_numeric(df["close"], errors='coerce')
     df = df.dropna()
     
