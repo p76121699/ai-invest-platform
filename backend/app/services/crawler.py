@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from email.utils import parsedate_to_datetime
 from textblob import TextBlob
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright
 from app import models
@@ -436,5 +436,25 @@ async def fetch_and_process_news(db: AsyncSession):
             
             await db.commit()
 
+    # 3. Cleanup Old News (Retention Policy: 30 Days)
+    try:
+        await cleanup_old_news(db, days=30)
+    except Exception as e:
+        log_debug(f"Cleanup error: {e}")
+
     log_debug("News crawling completed.")
     return {"feeds_fetched": len(rss_data), "total_added": total_added}
+
+async def cleanup_old_news(db: AsyncSession, days: int = 30):
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    log_debug(f"Cleaning up news older than {days} days (before {cutoff})...")
+    
+    # Check count first (Optional, but good for logging)
+    # stmt = select(func.count(models.News.id)).where(models.News.published_at < cutoff)
+    
+    from sqlalchemy import delete
+    stmt = delete(models.News).where(models.News.published_at < cutoff)
+    result = await db.execute(stmt)
+    await db.commit()
+    
+    log_debug(f"Deleted {result.rowcount} old news items.")

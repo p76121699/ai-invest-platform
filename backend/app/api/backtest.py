@@ -24,7 +24,9 @@ async def run(request: schemas.BacktestInput):
             slow=request.slow_ma or 30
         )
 
-    result = run_backtest(
+    import asyncio
+    result = await asyncio.to_thread(
+        run_backtest,
         request.ticker,
         request.start,
         request.end,
