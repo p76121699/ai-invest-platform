@@ -15,6 +15,9 @@ class TokenData(BaseModel):
 class UserBase(BaseModel):
     email: EmailStr
 
+class Message(BaseModel):
+    message: str
+
 class UserCreate(UserBase):
     password: str
 
