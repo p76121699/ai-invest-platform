@@ -32,6 +32,7 @@ APScheduler
 # Authentication / Security
 passlib[bcrypt]
 bcrypt
+argon2-cffi
 python-jose[cryptography]
 
 # Data Science / Finance
