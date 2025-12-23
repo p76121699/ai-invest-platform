@@ -16,27 +16,40 @@ async def get_ai_assistant_response(user_input: str):
         raise HTTPException(status_code=500, detail="Gemini API Key not configured")
     
     try:
-        # User requested gemini-1.5-flash
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        
-        # Role Prompt
+        # Try preferred model: gemini-1.5-flash
+        model = genai.GenerativeModel('gemini-1.5-flash-latest')
         prompt = f"你是一位專業的投資助理，請針對以下問題提供建議：{user_input}"
-        
-        # Async generation isn't strictly presented in the snippet, but run_in_executor is safer for sync calls
-        # However, google-generativeai 'generate_content' is sync.
-        # For a simple implementation as requested, we can call it directly or wrapping in to_thread is better practice.
-        # But per user snippet: response = model.generate_content(prompt)
-        # We will follow the logic structure provided.
-        
-        response = model.generate_content(prompt)
+        response = await asyncio.to_thread(model.generate_content, prompt)
         return {"response": response.text}
         
     except Exception as e:
+        error_str = str(e)
+        print(f"Gemini Primary Error: {error_str}")
+        
         # Check Rate Limit
-        if "429" in str(e):
+        if "429" in error_str:
              return {"response": "AI 助理目前休息中（達到免費額度上限），請一分鐘後再試！"}
-        print(f"Gemini Error: {e}")
-        return {"response": "AI 暫時無法回應，請檢查網路連線。"}
+        
+        # Fallback for 404 (Model Not Found) -> Try gemini-pro
+        if "404" in error_str or "not found" in error_str.lower():
+            try:
+                print("Attempting fallback to 'gemini-pro'...")
+                fallback_model = genai.GenerativeModel('gemini-pro')
+                response = await asyncio.to_thread(fallback_model.generate_content, prompt)
+                return {"response": response.text + "\n\n(Fallback: used gemini-pro)"}
+            except Exception as e2:
+                print(f"Gemini Fallback Error: {e2}")
+                # Log available models for debugging
+                try:
+                    for m in genai.list_models():
+                        if 'generateContent' in m.supported_generation_methods:
+                            print(f"Available Model: {m.name}")
+                except:
+                    pass
+                    
+        return {"response": "AI 暫時無法回應，請檢查後端日誌以獲取更多資訊。"}
+        
+import asyncio
 
 @router.post("/chat")
 async def chat_with_ai(message: schemas.ChatMessage):
