@@ -13,6 +13,7 @@ if settings.GOOGLE_API_KEY:
 
 from datetime import datetime
 from sqlalchemy.future import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from app import models
 from app.database import get_db
 from fastapi import Depends
