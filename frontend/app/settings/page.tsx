@@ -104,30 +104,30 @@ export default function SettingsPage() {
                         </CardContent>
                     </Card>
                 </TabsContent>
-            </TabsContent>
 
-            <TabsContent value="account">
-                <Card className="border-red-900/50 bg-red-950/10">
-                    <CardHeader>
-                        <CardTitle className="text-red-500">Danger Zone</CardTitle>
-                        <CardDescription className="text-red-400">
-                            Irreversible actions for your account.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex items-center justify-between p-4 border border-red-900 rounded-lg bg-red-950/20">
-                            <div className="space-y-1">
-                                <h4 className="text-sm font-medium text-red-100">Delete Account</h4>
-                                <p className="text-xs text-red-300">
-                                    Permanently remove your account and all associated data (Portfolio, Watchlist, Backtest history).
-                                </p>
+
+                <TabsContent value="account">
+                    <Card className="border-red-900/50 bg-red-950/10">
+                        <CardHeader>
+                            <CardTitle className="text-red-500">Danger Zone</CardTitle>
+                            <CardDescription className="text-red-400">
+                                Irreversible actions for your account.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex items-center justify-between p-4 border border-red-900 rounded-lg bg-red-950/20">
+                                <div className="space-y-1">
+                                    <h4 className="text-sm font-medium text-red-100">Delete Account</h4>
+                                    <p className="text-xs text-red-300">
+                                        Permanently remove your account and all associated data (Portfolio, Watchlist, Backtest history).
+                                    </p>
+                                </div>
+                                <DeleteAccountDialog />
                             </div>
-                            <DeleteAccountDialog />
-                        </div>
-                    </CardContent>
-                </Card>
-            </TabsContent>
-        </Tabs>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
         </div >
     )
 }
