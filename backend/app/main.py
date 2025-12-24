@@ -60,3 +60,7 @@ app.include_router(portfolio.router, prefix=f"{settings.API_V1_STR}/portfolio", 
 @app.get("/")
 def read_root():
     return {"message": "AI Invest API is running"}
+
+@app.get("/health")
+async def health_check():
+    return {"status": "alive"}
