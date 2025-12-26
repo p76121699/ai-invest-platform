@@ -23,9 +23,10 @@ interface NewsItem {
 
 interface NewsCardProps {
     news: NewsItem
+    readonly?: boolean
 }
 
-export function NewsCard({ news }: NewsCardProps) {
+export function NewsCard({ news, readonly = false }: NewsCardProps) {
     const router = useRouter()
 
     // Sentiment Logic
@@ -54,7 +55,9 @@ export function NewsCard({ news }: NewsCardProps) {
     const handleDetailClick = (e: React.MouseEvent) => {
         e.preventDefault()
         e.stopPropagation()
-        router.push('/news/' + news.id)
+        if (!readonly) {
+            router.push('/news/' + news.id)
+        }
     }
 
     // Relative Time
@@ -66,7 +69,7 @@ export function NewsCard({ news }: NewsCardProps) {
     }
 
     return (
-        <Card className="news-item overflow-hidden hover:-translate-y-1 hover:shadow-xl transition-all duration-300 cursor-pointer border-l-4 group h-full"
+        <Card className={`news-item overflow-hidden hover:-translate-y-1 hover:shadow-xl transition-all duration-300 border-l-4 group h-full ${readonly ? 'cursor-default' : 'cursor-pointer'}`}
             style={{ borderLeftColor: news.sentiment > 0.1 ? '#22c55e' : news.sentiment < -0.1 ? '#ef4444' : '#6b7280' }}
             data-testid={`news-item-${news.id}`}
             onClick={handleDetailClick}>

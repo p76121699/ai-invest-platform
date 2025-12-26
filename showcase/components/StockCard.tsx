@@ -33,17 +33,18 @@ interface StockCardProps {
     quote: StockQuote
     isSaved: boolean
     onToggleWatchlist: (ticker: string) => void
+    readonly?: boolean
 }
 
-export function StockCard({ quote, isSaved, onToggleWatchlist }: StockCardProps) {
+export function StockCard({ quote, isSaved, onToggleWatchlist, readonly = false }: StockCardProps) {
     const [open, setOpen] = useState(false)
 
     return (
         <>
             <Card
-                className="overflow-hidden relative group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer border-l-4"
+                className={`overflow-hidden relative group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-l-4 ${readonly ? 'cursor-default' : 'cursor-pointer'}`}
                 style={{ borderLeftColor: quote.change_percent >= 0 ? '#22c55e' : '#ef4444' }}
-                onClick={() => setOpen(true)}
+                onClick={() => !readonly && setOpen(true)}
             >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <div className="flex flex-col">
@@ -54,10 +55,11 @@ export function StockCard({ quote, isSaved, onToggleWatchlist }: StockCardProps)
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
-                                onToggleWatchlist(quote.ticker);
+                                if (!readonly) onToggleWatchlist(quote.ticker);
                             }}
-                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className={`p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${readonly ? 'cursor-default opacity-50' : 'cursor-pointer'}`}
                             title={isSaved ? "Remove from Watchlist" : "Add to Watchlist"}
+                            disabled={readonly}
                         >
                             <Star
                                 className={`h-5 w-5 transition-colors duration-200 ${isSaved ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground hover:text-yellow-400"}`}

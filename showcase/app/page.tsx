@@ -326,7 +326,7 @@ function InteractiveModulesSection() {
                             <h3 className="font-bold text-xl">Real-Time Market Data</h3>
                         </div>
                         <div className="transform hover:scale-105 transition-transform duration-500">
-                            <StockCard quote={MOCK_STOCK} isSaved={true} onToggleWatchlist={() => { }} />
+                            <StockCard quote={MOCK_STOCK} isSaved={true} onToggleWatchlist={() => { }} readonly={true} />
                         </div>
                         <p className="text-sm text-slate-500 px-2">
                             Live stock ticker component with Recharts sparklines and dynamic coloring based on daily change.
@@ -340,7 +340,7 @@ function InteractiveModulesSection() {
                             <h3 className="font-bold text-xl">AI News Sentiment</h3>
                         </div>
                         <div className="transform hover:scale-105 transition-transform duration-500 h-full max-h-[400px]">
-                            <NewsCard news={MOCK_NEWS} />
+                            <NewsCard news={MOCK_NEWS} readonly={true} />
                         </div>
                         <p className="text-sm text-slate-500 px-2">
                             News feed card featuring automated sentiment analysis (0-100 score) and source tracking.
