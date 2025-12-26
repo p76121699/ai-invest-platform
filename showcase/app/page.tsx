@@ -2,12 +2,14 @@
 
 import { motion, useScroll, useTransform } from "framer-motion"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
     Cpu, Database, Globe,
     ArrowRight, TrendingUp, TriangleAlert, CheckCircle,
-    Code, Terminal, LineChart, Server, Activity, ChevronDown
+    Code, Terminal, LineChart, Server, Activity, ChevronDown, Rocket
 } from "lucide-react"
 import { useRef } from "react"
+import Link from 'next/link'
 import { StockCard } from "@/components/StockCard"
 import { NewsCard } from "@/components/NewsCard"
 
@@ -73,10 +75,23 @@ function HeroSection() {
                     Redefining market analysis with <span className="text-indigo-400 font-medium">Context-Aware AI</span> and <span className="text-indigo-400 font-medium">Real-Time Data Pipelines</span>.
                 </p>
 
-                <div className="grid grid-cols-3 gap-8 pt-12 border-t border-slate-800/50 mt-12">
+                {/* Launch Button */}
+                <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="pt-4"
+                >
+                    <Link href={process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_FRONTEND_URL || "#"} target="_blank">
+                        <Button size="lg" className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-6 text-lg rounded-full shadow-[0_0_30px_-5px_theme(colors.indigo.500)] border border-indigo-400/30">
+                            Launch App <Rocket className="ml-2 w-5 h-5" />
+                        </Button>
+                    </Link>
+                </motion.div>
+
+                <div className="grid grid-cols-3 gap-8 pt-12 border-t border-slate-800/50 mt-12 w-full max-w-3xl mx-auto">
                     <StatItem value="99.9%" label="Uptime" />
                     <StatItem value="Gemini 1.5" label="Model" />
-                    <StatItem value="<50ms" label="Latency" />
+                    <StatItem value="Risk Free" label="Paper Trading" />
                 </div>
             </motion.div>
 
@@ -126,7 +141,28 @@ const CHALLENGES = [
         task: "Create a mechanism to inject 'Right Now' context (Date, News) without retraining the model.",
         action: "Built a dynamic RAG pipeline in Python. Before every request, the backend fetches the latest 5 news summaries from PostgreSQL and injects a 'System Context' block containing Today's Date and News Headlines into the Gemini prompt.",
         result: "Eliminated temporal hallucinations. The AI now correctly identifies today's market events and correlates them with its internal knowledge base.",
-        techs: ["Python", "Gemini API", "SQLAlchemy", "Prompt Engineering"]
+        techs: ["Python", "Gemini API", "SQLAlchemy", "Prompt Engineering"],
+        code: `
+# app/api/assistant.py
+
+# 1. Fetch Latest News for Context
+context_str = f"Today's Date: {datetime.now().strftime('%Y-%m-%d')}\\n\\nLatest Market News:\\n"
+result = await db.execute(select(models.News).order_by(models.News.published_at.desc()).limit(5))
+news_items = result.scalars().all()
+
+for n in news_items:
+    context_str += f"- [{n.published_at}] {n.title} (Sentiment: {n.sentiment})\\n"
+
+# 2. Enhanced Prompt with Context
+system_instruction = f"""
+You are an advanced AI Investment Assistant.
+Context:
+{context_str}
+
+User Question: {user_input}
+Please answer based on the provided latest market news and date.
+"""
+`
     },
     {
         id: "02",
@@ -135,7 +171,25 @@ const CHALLENGES = [
         task: "Develop a stealthy crawler capable of mimicking human browsing behavior to ensure data continuity.",
         action: "Migrated from `requests` to `Playwright` for headless browser simulation. Implemented 'User-Agent Rotation' and exponential backoff retry logic using the `tenacity` library. Added a Redis-style caching layer.",
         result: "Successfully bypassed anti-bot protections, achieving 99% scrape success rate with hourly updates.",
-        techs: ["Playwright", "AsyncIO", "Tenacity", "Headless Chrome"]
+        techs: ["Playwright", "AsyncIO", "Tenacity", "Headless Chrome"],
+        code: `
+# app/services/crawler.py
+
+async def fetch_rss_xml(client, url):
+    # Use HTTPX for fast RSS polling first
+    headers = { "User-Agent": "Mozilla/5.0..." }
+    response = await client.get(url, follow_redirects=True)
+    return response.text
+
+async def fetch_full_content(page, url):
+    # Fallback to Playwright for full JS rendering if needed
+    try:
+        await page.goto(url, timeout=30000, wait_until="domcontentloaded")
+        content = await page.content()
+        return clean_html_static(content)
+    except Exception as e:
+        log_debug(f"Playwright error for {url}: {e}")
+`
     },
     {
         id: "03",
@@ -144,7 +198,24 @@ const CHALLENGES = [
         task: "Ensure 24/7 availability and decouple heavy compute tasks from the main API thread.",
         action: "1. Implemented a `/health` endpoint for external monitoring (UptimeRobot). 2. Offloaded crawler jobs to `APScheduler` background threads. 3. Optimized Dockerfile build to reduce startup time.",
         result: "Service stays awake 24/7. Background tasks run asynchronously without blocking the main API thread, preventing Worker Timeouts.",
-        techs: ["Docker", "UptimeRobot", "APScheduler", "Health Checks"]
+        techs: ["Docker", "UptimeRobot", "APScheduler", "Health Checks"],
+        code: `
+# app/main.py
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Schedule Background Tasks
+    scheduler.add_job(scheduled_news_crawl, 'interval', minutes=60)
+    scheduler.start()
+    yield
+    # Shutdown
+    scheduler.shutdown()
+
+@app.api_route("/health", methods=["GET", "HEAD"])
+async def health_check():
+    # Pinged by UptimeRobot every 5 mins
+    return {"status": "alive"}
+`
     }
 ]
 
@@ -198,13 +269,21 @@ function ChallengeRow({ data, index }: { data: any, index: number }) {
                 <StarBox icon={<Code className="text-purple-500" />} label="Action" text={data.action} className="bg-slate-900/80 border-indigo-500/30" delay={0.3} />
                 <StarBox icon={<TrendingUp className="text-green-500" />} label="Result" text={data.result} className="bg-gradient-to-br from-slate-900 to-indigo-950/30 border-green-500/20" delay={0.4} />
 
-                {/* Decorative Code Block or Graphic could go here */}
-                <div className="h-40 w-full rounded-2xl bg-slate-950 border border-slate-800 relative overflow-hidden group">
+                {/* Real Code Snippet */}
+                <div className="w-full rounded-2xl bg-slate-950 border border-slate-800 relative overflow-hidden group">
                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10" />
-                    <div className="p-4 font-mono text-xs text-slate-500">
-                        <span className="text-purple-400">def</span> <span className="text-yellow-200">solve_challenge</span>():<br />
-                        &nbsp;&nbsp;<span className="text-blue-400">await</span> ai.inject_context(<span className="text-green-400">"Latest News"</span>)<br />
-                        &nbsp;&nbsp;<span className="text-blue-400">return</span> <span className="text-green-400">"Success"</span>
+                    <div className="flex items-center gap-2 px-4 py-3 bg-slate-900 border-b border-slate-800">
+                        <div className="flex gap-1.5">
+                            <div className="w-3 h-3 rounded-full bg-red-500/50" />
+                            <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
+                            <div className="w-3 h-3 rounded-full bg-green-500/50" />
+                        </div>
+                        <span className="text-xs font-mono text-slate-500 ml-2">source_code.py</span>
+                    </div>
+                    <div className="p-4 overflow-x-auto">
+                        <pre className="font-mono text-xs text-slate-300 leading-relaxed">
+                            <code>{data.code}</code>
+                        </pre>
                     </div>
                 </div>
             </div>
