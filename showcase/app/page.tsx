@@ -90,7 +90,7 @@ function HeroSection() {
 
                 <div className="grid grid-cols-3 gap-8 pt-12 border-t border-slate-800/50 mt-12 w-full max-w-3xl mx-auto">
                     <StatItem value="99.9%" label="Uptime" />
-                    <StatItem value="Gemini 1.5" label="Model" />
+                    <StatItem value="Gemini 2.0" label="Model" />
                     <StatItem value="Risk Free" label="Paper Trading" />
                 </div>
             </motion.div>

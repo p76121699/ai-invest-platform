@@ -36,7 +36,7 @@ async def get_ai_assistant_response(user_input: str, db: AsyncSession):
 
     try:
         # Try preferred model: gemini-3-flash-preview (User's choice)
-        model = genai.GenerativeModel('gemini-2.0-pro')
+        model = genai.GenerativeModel('gemini-2.0-flash-lite-001')
         
         # Enhanced Prompt with Context
         system_instruction = f"""
@@ -64,7 +64,7 @@ If the news is relevant to the question, verify the facts against the provided d
         if "404" in error_str or "not found" in error_str.lower():
             try:
                 print("Attempting fallback to 'gemini-pro'...")
-                fallback_model = genai.GenerativeModel('gemini-pro')
+                fallback_model = genai.GenerativeModel('gemini-2.0-flash-lite-001')
                 response = await asyncio.to_thread(fallback_model.generate_content, system_instruction)
                 return {"response": response.text + "\n\n(Fallback: used gemini-pro)"}
             except Exception as e2:

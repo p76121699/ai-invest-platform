@@ -90,7 +90,7 @@ export function FloatingAssistant() {
                         <Terminal className="w-5 h-5 text-purple-400" />
                         <span className="font-semibold">AI Investment Assistant</span>
                         <span className="text-xs text-zinc-500 font-mono border border-zinc-700 px-2 py-0.5 rounded-full">
-                            Gemini 3
+                            Gemini 2
                         </span>
                     </div>
                     <Button
