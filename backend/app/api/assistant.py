@@ -36,7 +36,7 @@ async def get_ai_assistant_response(user_input: str, db: AsyncSession):
 
     try:
         # Try preferred model: gemini-3-flash-preview (User's choice)
-        model = genai.GenerativeModel('gemini-3-flash-preview')
+        model = genai.GenerativeModel('gemini-2.0-pro')
         
         # Enhanced Prompt with Context
         system_instruction = f"""
