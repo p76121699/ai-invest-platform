@@ -110,6 +110,3 @@ docker-compose up --build
 |-----------|------------|
 | ![News](assets/news.png) | ![Backtester](assets/backtester.png) |
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
