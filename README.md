@@ -1,7 +1,5 @@
 # AI Invest Platform
 
-![AI Invest Dashboard](https://github.com/user-attachments/assets/placeholder-dashboard.png)
-
 **AI Invest Platform** is a comprehensive financial analysis tool that combines **Artificial Intelligence (NLP)** with **Real-time Market Data** to help investors make smarter decisions.
 
 It integrates news sentiment analysis, technical indicators, strategy backtesting, and paper trading into a single, modern web interface.
@@ -40,6 +38,17 @@ It integrates news sentiment analysis, technical indicators, strategy backtestin
 *   **Crawler**: Playwright + Beautiful Soup
 *   **Task Queue**: Celery + Redis (for background crawling)
 *   **Data Sources**: `yfinance`, RSS Feeds
+
+---
+
+## 🌍 Live Demo
+*The system is currently deployed and accessible via:*
+- **Dashboard**: [\[Link to Vercel Deployment\]](https://ai-invest-platform.vercel.app/)
+- **API Docs**: [\[Link to Render Backend\]](https://ai-invest-platform.onrender.com/docs)
+
+*(Note: If running locally, please see the Developer Guide below)*
+
+---
 
 ## 🏁 Getting Started
 
@@ -95,11 +104,11 @@ docker-compose up --build
 
 | Dashboard | Stock Analysis |
 |-----------|----------------|
-| ![Dashboard](https://placehold.co/600x400?text=Dashboard+View) | ![Stocks](https://placehold.co/600x400?text=Stock+Charts) |
+| ![Dashboard](assets/dashboard.png) | ![Stocks](assets/stocks.png) |
 
 | News Feed | Backtester |
 |-----------|------------|
-| ![News](https://placehold.co/600x400?text=AI+News+Feed) | ![Backtester](https://placehold.co/600x400?text=Backtest+Result) |
+| ![News](assets/news.png) | ![Backtester](assets/backtester.png) |
 
 ## 📄 License
 

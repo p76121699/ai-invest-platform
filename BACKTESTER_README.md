@@ -26,8 +26,8 @@ It is built using a modular architecture for easy extension.
   "ticker": "AAPL",
   "fast": 10,
   "slow": 30,
-  "start_date": "2023-01-01",
-  "end_date": "2023-12-31"
+  "start_date": "2025-06-01",
+  "end_date": "2025-11-30"
 }
 ```
 
