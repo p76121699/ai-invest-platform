@@ -44,6 +44,8 @@ class BacktestExecutor:
                 total_return=0.0,
                 total_trades=0,
                 final_equity=strategy.initial_capital,
+                max_drawdown=0.0,
+                sharpe_ratio=0.0,
                 equity_curve=[],
                 trades=[]
             )
@@ -110,6 +112,12 @@ class BacktestExecutor:
 
                 pnl = (exit_p - entry_p) * vol
                 
+                # Sanitize trade values
+                if not np.isfinite(entry_p): entry_p = 0.0
+                if not np.isfinite(exit_p): exit_p = 0.0
+                if not np.isfinite(vol): vol = 0.0
+                if not np.isfinite(pnl): pnl = 0.0
+
                 trades.append({
                     "symbol": "BACKTEST",
                     "entry_date": entry_date_str, 
@@ -120,13 +128,36 @@ class BacktestExecutor:
                     "pnl": float(pnl),
                     "status": "CLOSED"
                 })
+
+            # Sanitize outputs for JSON serialization (No NaNs allowed)
+            equity_curve = np.nan_to_num(equity_curve, nan=0.0, posinf=0.0, neginf=0.0)
             
-            final_equity = equity_curve[-1] if len(equity_curve) > 0 else initial_capital
-            
+            # Calculate final equity safely
+            val = equity_curve[-1] if len(equity_curve) > 0 else initial_capital
+            final_equity = float(np.nan_to_num(val, nan=initial_capital))
+            total_return = (final_equity - initial_capital) / initial_capital
+            total_return = float(np.nan_to_num(total_return, nan=0.0))
+
+            # Calculate additional stats (MDD, Sharpe)
+            eq_series = pd.Series(equity_curve)
+            running_max = eq_series.cummax()
+            drawdown = (eq_series - running_max) / running_max
+            max_drawdown = float(drawdown.min())
+            max_drawdown = float(np.nan_to_num(max_drawdown, nan=0.0))
+
+            returns = eq_series.pct_change().dropna()
+            if len(returns) > 1 and returns.std() > 0:
+                sharpe_ratio = (returns.mean() / returns.std()) * np.sqrt(252)
+            else:
+                sharpe_ratio = 0.0
+            sharpe_ratio = float(np.nan_to_num(sharpe_ratio, nan=0.0))
+
             return BacktestResult(
-                total_return=(final_equity - initial_capital) / initial_capital,
+                total_return=total_return,
                 total_trades=len(trades),
                 final_equity=final_equity,
+                max_drawdown=max_drawdown,
+                sharpe_ratio=sharpe_ratio,
                 equity_curve=equity_curve.tolist(),
                 trades=trades
             )
@@ -137,6 +168,8 @@ class BacktestExecutor:
                 total_return=0.0,
                 total_trades=0,
                 final_equity=initial_capital,
+                max_drawdown=0.0,
+                sharpe_ratio=0.0,
                 equity_curve=[initial_capital] * len(df),
                 trades=[]
             )

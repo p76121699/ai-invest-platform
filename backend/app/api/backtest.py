@@ -35,15 +35,20 @@ async def run(request: schemas.BacktestInput):
         )
 
     import asyncio
-    result = await asyncio.to_thread(
-        run_backtest,
-        request.ticker,
-        request.start,
-        request.end,
-        strategy
-    )
-    
-    if "error" in result and result["error"]:
-        raise HTTPException(status_code=400, detail=result["error"])
+    import traceback
+    try:
+        result = await asyncio.to_thread(
+            run_backtest,
+            request.ticker,
+            request.start,
+            request.end,
+            strategy
+        )
+        
+        if "error" in result and result["error"]:
+            raise HTTPException(status_code=400, detail=result["error"])
 
-    return result
+        return result
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))

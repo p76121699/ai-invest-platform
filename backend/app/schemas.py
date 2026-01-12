@@ -72,6 +72,8 @@ class BacktestResult(BaseModel):
     total_return: float
     total_trades: int
     final_equity: float
+    max_drawdown: float
+    sharpe_ratio: float
     equity_curve: List[float]
     trades: List[dict]
 

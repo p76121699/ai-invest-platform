@@ -29,16 +29,11 @@ def run_sma_crossover_jit(
     
     # Outputs
     equity_curve = np.zeros(n, dtype=np.float64)
-    trades_list = []  # Numba supports lists if append is simple
-    # Hack: We can't easily return a dynamic list of objects in nopython mode sometimes,
-    # but append to a list of tuples or simply a fixed size array if we knew count.
-    # List of lists (matrix) is okay in recent numba.
     
-    # We will store trades as a flattened list and reshape later or just return list of tuples
-    # Format: (entry_index, exit_index, type, entry_price, exit_price, profit)
-    # Type: 1 (Long), -1 (Short)
-    
-    trade_log = []
+    # Pre-allocate trades array (Max possible trades = n)
+    # Format: [entry_idx, exit_idx, entry_price, exit_price, volume]
+    trades = np.zeros((n, 5), dtype=np.float64)
+    trade_count = 0
 
     for i in range(1, n):
         # 0. Update Equity
@@ -75,11 +70,13 @@ def run_sma_crossover_jit(
             cash += proceeds
             
             # Record Trade
-            pnl = proceeds - (entry_price * position) # Rough PnL (excluding entry comm? simplified)
-            # Actually cash tracks true equity, so PnL implicit.
-            # Let's record raw trade
             # entry_idx, exit_idx, entry_price, exit_price, volume
-            trade_log.append((entry_idx, i, entry_price, exit_price, position))
+            trades[trade_count, 0] = entry_idx
+            trades[trade_count, 1] = i
+            trades[trade_count, 2] = entry_price
+            trades[trade_count, 3] = exit_price
+            trades[trade_count, 4] = position
+            trade_count += 1
             
             position = 0.0
             
@@ -97,4 +94,4 @@ def run_sma_crossover_jit(
                 cost = position * current_price * commission_rate
                 cash -= (position * current_price + cost)
 
-    return equity_curve, trade_log
+    return equity_curve, trades[:trade_count]

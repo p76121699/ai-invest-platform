@@ -33,17 +33,13 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="AI Invest API", version="0.1.0", lifespan=lifespan)
 
 # CORS setup
-origins = [
-    "http://localhost:3000",
-    "http://localhost",
-    "http://127.0.0.1:3000",
-    "https://ai-invest-platform-6tk17dou0-koda-obsidians-projects.vercel.app", # Vercel Frontend
-    "https://ai-invest-platform.vercel.app", # Generic Vercel (optional)
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost",
+        "http://127.0.0.1:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
