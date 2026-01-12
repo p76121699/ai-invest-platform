@@ -424,11 +424,11 @@ export default function PaperTradingPage() {
                                     <TableRow key={h.ticker}>
                                         <TableCell className="font-medium">{h.ticker}</TableCell>
                                         <TableCell className="text-right">{h.shares}</TableCell>
-                                        <TableCell className="text-right">${h.avgCost.toFixed(2)}</TableCell>
-                                        <TableCell className="text-right">${h.marketPrice.toFixed(2)}</TableCell>
-                                        <TableCell className="text-right font-bold">${h.totalValue.toLocaleString()}</TableCell>
+                                        <TableCell className="text-right">${(h.avgCost ?? 0).toFixed(2)}</TableCell>
+                                        <TableCell className="text-right">${(h.marketPrice ?? 0).toFixed(2)}</TableCell>
+                                        <TableCell className="text-right font-bold">${(h.totalValue ?? 0).toLocaleString()}</TableCell>
                                         <TableCell className={`text-right font-bold ${h.unrealizedPL >= 0 ? "text-green-500" : "text-red-500"}`}>
-                                            {h.unrealizedPL >= 0 ? "+" : ""}{h.unrealizedPL.toFixed(2)} ({h.unrealizedPLPct.toFixed(1)}%)
+                                            {h.unrealizedPL >= 0 ? "+" : ""}{(h.unrealizedPL ?? 0).toFixed(2)} ({(h.unrealizedPLPct ?? 0).toFixed(1)}%)
                                         </TableCell>
                                     </TableRow>
                                 ))}
