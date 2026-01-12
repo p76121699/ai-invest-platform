@@ -302,15 +302,7 @@ export default function BacktestPage() {
                         </CardContent>
                     </Card>
 
-                    {/* Debug View (For Analysis) */}
-                    <Card className="border-red-500 border-dashed">
-                        <CardHeader><CardTitle className="text-red-500 text-sm">Debug Data (Raw Response)</CardTitle></CardHeader>
-                        <CardContent>
-                            <pre className="bg-slate-950 p-4 rounded text-xs text-green-400 overflow-auto max-h-[300px]">
-                                {result ? JSON.stringify(result, null, 2) : "No result yet"}
-                            </pre>
-                        </CardContent>
-                    </Card>
+
                 </div>
             </div>
         </div>
