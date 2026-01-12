@@ -1,6 +1,4 @@
 from app.services.backtester.strategy_base import StrategyBase
-import pandas_ta as ta
-
 class RSIReversalStrategy(StrategyBase):
     def __init__(self, period: int = 14, lower: int = 30, upper: int = 70):
         self.period = period
@@ -8,8 +6,14 @@ class RSIReversalStrategy(StrategyBase):
         self.upper = upper
 
     def prepare(self, df):
-        # RSI calculation
-        df["rsi"] = ta.rsi(df["close"], length=self.period)
+        # RSI calculation using pure Pandas (No external lib dependency)
+        delta = df["close"].diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=self.period).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=self.period).mean()
+        
+        rs = gain / loss
+        df["rsi"] = 100 - (100 / (1 + rs))
+        df["rsi"] = df["rsi"].fillna(50) # Default neutral
         return df
 
     def generate_signals(self, df):
