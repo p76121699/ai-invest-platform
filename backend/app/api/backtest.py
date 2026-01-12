@@ -10,18 +10,28 @@ router = APIRouter()
 
 @router.post("/run") # Matches /api/v1/backtest/run
 async def run(request: schemas.BacktestInput):
-    # Instantiate strategy
+    # Instantiate strategy (Must be Pydantic model for Executor)
     if request.strategy == "rsi_reversal":
-        strategy = RSIReversalStrategy(
-            period=request.rsi_period or 14,
-            lower=request.rsi_lower or 30,
-            upper=request.rsi_upper or 70
+        # RSI Strategy
+        params = {
+            "period": request.rsi_period or 14,
+            "lower": request.rsi_lower or 30,
+            "upper": request.rsi_upper or 70
+        }
+        strategy = schemas.BacktestStrategy(
+            initial_capital=100000.0,
+            parameters=params
         )
     else:
         # Default to MA
-        strategy = MACrossoverStrategy(
-            fast=request.fast_ma or 10,
-            slow=request.slow_ma or 30
+        # Map API keys (fast_ma) to Executor keys (fast_period)
+        params = {
+            "fast_period": request.fast_ma or 10,
+            "slow_period": request.slow_ma or 30
+        }
+        strategy = schemas.BacktestStrategy(
+            initial_capital=100000.0,
+            parameters=params
         )
 
     import asyncio
