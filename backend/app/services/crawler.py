@@ -8,7 +8,7 @@ from email.utils import parsedate_to_datetime
 from textblob import TextBlob
 from datetime import datetime, timezone, timedelta
 from bs4 import BeautifulSoup
-from playwright.async_api import async_playwright
+
 from app import models
 
 # Updated Feeds: TechCrunch, Investing.com, Medium, UDN (Taiwan), CNA (Taiwan)
@@ -70,24 +70,7 @@ def is_bad_image(url):
 
 
 
-async def fetch_full_content(page, url):
-    try:
-        # Navigate
-        await page.goto(url, timeout=30000, wait_until="domcontentloaded")
-        
-        # Extract full HTML
-        content = await page.content()
-        cleaned_html = clean_html_static(content)
-        
-        # Check for soft errors (Yahoo "Oops", empty content, etc)
-        if len(cleaned_html) < 200 or "Oops, something went wrong" in cleaned_html:
-             # Try fallback to simplistic paragraphs again or just yield message
-             return f"<p>Unable to retrieve full content for this article due to site restrictions. Please <a href='{url}' target='_blank'>read the original article</a>.</p>"
-             
-        return cleaned_html
-    except Exception as e:
-        log_debug(f"Playwright error for {url}: {e}")
-        return f"<p>內容暫時無法取得</p>"
+
 
 def parse_feed_sync(xml_content):
     return feedparser.parse(xml_content)

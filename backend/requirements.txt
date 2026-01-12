@@ -22,7 +22,7 @@ pydantic-settings
 httpx>=0.28.1
 beautifulsoup4
 feedparser
-playwright>=1.40.0
+
 
 # Asynchronous Tasks
 celery>=5.3.6
