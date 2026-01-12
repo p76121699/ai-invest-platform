@@ -82,6 +82,7 @@ export default function BacktestPage() {
                 end: params.end
             }
             const res = await axios.post(`${API_URL}/backtest/run`, payload)
+            console.log("Backtest Result:", res.data)
             setResult(res.data)
             toast({ title: "Backtest Complete", description: `Simulation finished for ${params.ticker}` })
         } catch (e) {
