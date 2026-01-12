@@ -46,5 +46,4 @@ nltk
 
 # Utils
 requests
-requests-cache>=1.0.0
 google-generativeai>=0.7.2

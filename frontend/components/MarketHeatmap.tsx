@@ -126,7 +126,7 @@ const CustomizedContent = (props: any) => {
                     dy={12}
                     style={{ pointerEvents: 'none' }}
                 >
-                    {(score * 100).toFixed(1)}%
+                    {((score ?? 0) * 100).toFixed(1)}%
                 </text>
             )}
         </g>
@@ -142,7 +142,7 @@ const CustomTooltip = ({ active, payload }: any) => {
                 <div className="flex justify-between gap-4">
                     <span className="text-slate-400">Change:</span>
                     <span className={data.score >= 0 ? "text-green-400 font-bold" : "text-red-400 font-bold"}>
-                        {(data.score * 100).toFixed(2)}%
+                        {((data.score ?? 0) * 100).toFixed(2)}%
                     </span>
                 </div>
                 <div className="flex justify-between gap-4 mt-1">

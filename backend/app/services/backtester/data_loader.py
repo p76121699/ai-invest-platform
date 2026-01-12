@@ -18,20 +18,21 @@ def load_price_history(ticker: str, start: str, end: str) -> pd.DataFrame:
     print(f"Downloading {ticker} from {fetch_start} (Buffer) to {end}")
     
     # Optimized: Single download call to save memory and time
-    # Use custom session to avoid SQLite locking issues on Render
+    # Fix for Render: Set a unique cache location for this process to avoid SQLite lock
+    import os
+    import tempfile
     try:
-        import requests_cache
-        # Disable cache for this session to prevent 'database is locked' errors
-        session = requests_cache.CachedSession(backend='memory', expire_after=3600)
-    except ImportError:
-        session = None
+        cache_dir = os.path.join(tempfile.gettempdir(), f"yf_cache_{os.getpid()}")
+        if not os.path.exists(cache_dir):
+            os.makedirs(cache_dir, exist_ok=True)
+        yf.set_tz_cache_location(cache_dir)
+    except Exception as e:
+        print(f"Failed to set YF cache location: {e}")
 
     # auto_adjust=False provides 'Adj Close' column usually
     try:
-        if session:
-             df_all = yf.download(ticker, start=fetch_start, end=end, progress=False, auto_adjust=False, threads=False, session=session)
-        else:
-             df_all = yf.download(ticker, start=fetch_start, end=end, progress=False, auto_adjust=False, threads=False)
+         # Standard download without custom session (which breaks curl_cffi)
+         df_all = yf.download(ticker, start=fetch_start, end=end, progress=False, auto_adjust=False, threads=False)
     except Exception as e:
         print(f"YFinance download failed: {e}")
         return pd.DataFrame(), start

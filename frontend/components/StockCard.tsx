@@ -79,7 +79,7 @@ export function StockCard({ quote, isSaved, onToggleWatchlist }: StockCardProps)
                     ) : (
                         <>
                             <div className="text-2xl font-bold">
-                                ${quote.price.toFixed(2)}
+                                ${(quote.price ?? 0).toFixed(2)}
                             </div>
                             <p className={`text-xs ${quote.change_percent >= 0 ? "text-green-500" : "text-red-500"}`}>
                                 {quote.change_percent > 0 ? "+" : ""}{quote.change_percent}%
