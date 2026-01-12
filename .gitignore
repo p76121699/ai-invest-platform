@@ -61,9 +61,10 @@ Thumbs.db
 *.msi
 *.dmg
 
+
 # Large AI Models / Binaries
 *.bin
 *.pt
 *.onnx
 *.weights
-江家德
+江家德.pdf
