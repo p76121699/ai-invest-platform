@@ -54,8 +54,17 @@ def load_price_history(ticker: str, start: str, end: str) -> pd.DataFrame:
     df["low"] = df_all["Low"]
     df["volume"] = df_all["Volume"]
 
-    # Ensure numeric
     df["close"] = pd.to_numeric(df["close"], errors='coerce')
     df = df.dropna()
     
     return df, start
+
+# Simple Cache to prevent redownloading same data in same session
+from functools import lru_cache
+@lru_cache(maxsize=32)
+def load_price_history_cached(ticker: str, start: str, end: str):
+    return load_price_history(ticker, start, end)
+
+# Monkey patch or redirect for now, keeping original function clean
+# But better to just edit the original function header.
+
