@@ -37,7 +37,8 @@ python-jose[cryptography]
 
 # Data Science / Finance
 yfinance>=0.2.33
-pandas>=2.0.0
+pandas==2.2.3
+numba>=0.59.0
 numpy
 pandas_ta
 textblob

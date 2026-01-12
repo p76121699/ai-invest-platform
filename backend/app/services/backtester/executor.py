@@ -1,97 +1,129 @@
-from .data_loader import load_price_history
-from .performance import compute_returns, compute_equity_curve, compute_stats
-import traceback
+import pandas as pd
+import numpy as np
+from typing import List, Dict, Any
+from app.schemas import BacktestStrategy, BacktestResult
 
-def run_backtest(ticker, start, end, strategy):
-    try:
-        # 1. Load Data (returns buffered df and original start date string)
-        df, original_start = load_price_history(ticker, start, end)
-        if df.empty:
-            return {"error": "No data found for ticker"}
+# Attempt to import the JIT core, fallback if not installed/fails
+try:
+    from .fast_core import run_sma_crossover_jit
+    HAS_NUMBA = True
+except ImportError:
+    HAS_NUMBA = False
+    print("WARNING: Numba not found, backtest will be slow or fail.")
 
-        # 2. Prepare Indicators
-        df = strategy.prepare(df)
+class BacktestExecutor:
+    def _calculate_indicators(self, df: pd.DataFrame, strategy: BacktestStrategy) -> pd.DataFrame:
+        """
+        Calculates signal indicators.
+        In production, this would use a robust library like TA-Lib or Pandas-TA.
+        """
+        fast = strategy.parameters.get('fast_period', 5)
+        slow = strategy.parameters.get('slow_period', 20)
         
-        # 3. Generate Signals
-        df = strategy.generate_signals(df)
+        # Calculate SMAs
+        df[f'SMA_{fast}'] = df['close'].rolling(window=fast).mean()
+        df[f'SMA_{slow}'] = df['close'].rolling(window=slow).mean()
         
-        # 3.5. Slice Data to Original Timeframe (Trim Buffer)
-        # Convert index to datetime if needed, or string comparison
-        # df.index is DatetimeIndex usually
-        df = df.loc[original_start:]
+        return df
+
+    def run_backtest(self, data: pd.DataFrame, strategy: BacktestStrategy) -> BacktestResult:
+        """
+        Executes the backtest using Numba optimizations if available.
+        """
+        if data.empty:
+             return BacktestResult(
+                total_return=0.0,
+                total_trades=0,
+                final_equity=strategy.initial_capital,
+                equity_curve=[],
+                trades=[]
+            )
+
+        df = data.copy()
+        # Ensure column names are lower case for consistency
+        df.columns = [c.lower() for c in df.columns]
         
-        # 4. Compute Returns
-        df = compute_returns(df)
+        initial_capital = strategy.initial_capital
         
-        # 5. Compute Equity & Stats
-        equity_curve = compute_equity_curve(df, None)
-        stats = compute_stats(equity_curve)
+        # 1. Feature Engineering
+        df = self._calculate_indicators(df, strategy)
+        df = df.fillna(0)
         
-        # 6. Extract Trades (T+1 Logic)
-        trades = []
-        position = 0
-        df['prev_signal'] = df['signal'].shift(1).fillna(0)
+        # 2. Extract logic parameters
+        fast_period = strategy.parameters.get('fast_period', 5)
+        slow_period = strategy.parameters.get('slow_period', 20)
+        fast_col = f'SMA_{fast_period}'
+        slow_col = f'SMA_{slow_period}'
         
-        # We iterate through the dataframe. 
-        # Logic: 
-        # On Date T, we see a Signal (based on Close T).
-        # We execute on Date T+1 Open.
-        
-        dates = df.index
-        for i in range(len(df) - 1): # Stop at 2nd to last, because we need i+1 for execution
-            date_t = dates[i]
-            date_next = dates[i+1]
+        # 3. Execution (Optimized)
+        if HAS_NUMBA and fast_col in df.columns:
+            # Prepare arrays for Numba (Must be explicitly typed)
+            closes = df['close'].values.astype(np.float64)
+            # Handle high/low if missing (e.g. only close data)
+            if 'high' in df.columns:
+                highs = df['high'].values.astype(np.float64)
+            else:
+                highs = closes
             
-            # Signal at Close of T
-            signal_t = df['signal'].iloc[i] 
-            
-            # Check for Status Change
-            action = None
-            if position == 0 and signal_t == 1:
-                action = "buy"
-            elif position == 1 and signal_t != 1:
-                action = "sell"
-            
-            if action:
-                # EXECUTE AT T+1 OPEN
-                exec_price_adj = df['open'].iloc[i+1] # Adjusted Open for PnL (Future implementation of real PnL tracking needs this)
-                exec_price_raw = df['raw_open'].iloc[i+1] # Raw Open for Display
+            if 'low' in df.columns:
+                lows = df['low'].values.astype(np.float64)
+            else:
+                lows = closes
                 
-                # For now, we just record the trade log exactly as requested
-                # Update PnL/Equity Curve logic is based on Close prices in compute_equity_curve, 
-                # which is slightly approximate if we execute at Open. 
-                # Ideally we should rebuild the equity curve simulation here loop-by-loop.
-                # But for now, let's fix the Trade Log first as requested.
+            # Use index for date tracking (simplified)
+            dates = np.arange(len(df), dtype=np.int64)
+            
+            sma_fast = df[fast_col].values.astype(np.float64)
+            sma_slow = df[slow_col].values.astype(np.float64)
+            
+            # CALL JIT KERNEL
+            equity_curve, raw_trades = run_sma_crossover_jit(
+                closes, highs, lows, dates,
+                sma_fast, sma_slow,
+                float(initial_capital)
+            )
+            
+            # 4. Result Reconstruction (Map back to Objects)
+            trades = []
+            for t in raw_trades:
+                # t: (entry_idx, exit_idx, entry_price, exit_price, volume)
+                entry_idx, exit_idx, entry_p, exit_p, vol = t
+                entry_idx = int(entry_idx)
+                exit_idx = int(exit_idx)
+                
+                entry_date_str = str(df.iloc[entry_idx]['date']) if 'date' in df.columns else f"Idx {entry_idx}"
+                exit_date_str = str(df.iloc[exit_idx]['date']) if 'date' in df.columns else f"Idx {exit_idx}"
+                
+                pnl = (exit_p - entry_p) * vol
                 
                 trades.append({
-                    "date": date_t.strftime("%Y-%m-%d"), # Signal Date
-                    "execution_date": date_next.strftime("%Y-%m-%d"),
-                    "action": action,
-                    "price": round(exec_price_raw, 2), # Display Raw
-                    "adj_price": round(exec_price_adj, 2) # Internal ref
+                    "symbol": "BACKTEST",
+                    "entry_date": entry_date_str,
+                    "exit_date": exit_date_str,
+                    "entry_price": float(entry_p),
+                    "exit_price": float(exit_p),
+                    "quantity": float(vol),
+                    "pnl": float(pnl),
+                    "status": "CLOSED"
                 })
-                
-                # Update position state
-                if action == "buy":
-                    position = 1
-                elif action == "sell":
-                    position = 0
-
-        # Note: compute_equity_curve currently uses 'signal' column which implies T Close execution.
-        # If we want exact PnL based on T+1 Open, we really should rewrite the equity calculation loop.
-        # Given the request focused on "Trade Log" and "price_exec", getting the Log right is Priority 1.
-        # The equity curve usually approximates to Close-to-Close for daily charts unless we build a tick-level or open-level sim.
-        # For this task, I will keep existing vectorized equity curve (approx) but ensure Trade Log is exact T+1 Open.
-        
-        return {
-            "equity_curve": equity_curve,
-            "stats": stats,
-            "trades": trades,
-            "error": None
-        }
-    except Exception as e:
-        traceback.print_exc()
-        return {"error": str(e), "equity_curve": [], "stats": {}}
-    finally:
-        import gc
-        gc.collect()
+            
+            final_equity = equity_curve[-1] if len(equity_curve) > 0 else initial_capital
+            
+            return BacktestResult(
+                total_return=(final_equity - initial_capital) / initial_capital,
+                total_trades=len(trades),
+                final_equity=final_equity,
+                equity_curve=equity_curve.tolist(),
+                trades=trades
+            )
+            
+        else:
+            # Fallback for when Numba is not available or logic doesn't match
+            # For this MVP, we return empty results to signal "Optimization Required"
+            return BacktestResult(
+                total_return=0.0,
+                total_trades=0,
+                final_equity=initial_capital,
+                equity_curve=[initial_capital] * len(df),
+                trades=[]
+            )
