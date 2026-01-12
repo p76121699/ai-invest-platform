@@ -18,9 +18,23 @@ def load_price_history(ticker: str, start: str, end: str) -> pd.DataFrame:
     print(f"Downloading {ticker} from {fetch_start} (Buffer) to {end}")
     
     # Optimized: Single download call to save memory and time
-    # auto_adjust=False provides 'Adj Close' column usually, or we can calculate it.
-    # Actually, yfinance default gives Open/High/Low/Close/Adj Close/Volume
-    df_all = yf.download(ticker, start=fetch_start, end=end, progress=False, auto_adjust=False, threads=False) # threads=False for stability in worker
+    # Use custom session to avoid SQLite locking issues on Render
+    try:
+        import requests_cache
+        # Disable cache for this session to prevent 'database is locked' errors
+        session = requests_cache.CachedSession(backend='memory', expire_after=3600)
+    except ImportError:
+        session = None
+
+    # auto_adjust=False provides 'Adj Close' column usually
+    try:
+        if session:
+             df_all = yf.download(ticker, start=fetch_start, end=end, progress=False, auto_adjust=False, threads=False, session=session)
+        else:
+             df_all = yf.download(ticker, start=fetch_start, end=end, progress=False, auto_adjust=False, threads=False)
+    except Exception as e:
+        print(f"YFinance download failed: {e}")
+        return pd.DataFrame(), start
     
     # Check if empty
     if df_all.empty:
@@ -35,20 +49,16 @@ def load_price_history(ticker: str, start: str, end: str) -> pd.DataFrame:
              df_all.columns = df_all.columns.get_level_values(0)
 
     # Standardize
-    # We will use 'Adj Close' for technical analysis (SMA, RSI) to account for splits/dividends
-    # We use 'Close' (Raw) for display prices if available
-    
     df = pd.DataFrame(index=df_all.index)
     
     if "Adj Close" in df_all.columns:
-        df["close"] = df_all["Adj Close"] # Use Adjusted for logic
-        df["raw_close"] = df_all["Close"] # Use Raw for display
+        df["close"] = df_all["Adj Close"]
+        df["raw_close"] = df_all["Close"]
     else:
-        # Fallback if specific column mismatch
         df["close"] = df_all["Close"]
         df["raw_close"] = df_all["Close"]
         
-    df["open"] = df_all["Open"] # This is usually raw open, but accurate enough
+    df["open"] = df_all["Open"] 
     df["raw_open"] = df_all["Open"]
     df["high"] = df_all["High"]
     df["low"] = df_all["Low"]
