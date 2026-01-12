@@ -48,6 +48,7 @@ async def run(request: schemas.BacktestInput):
         if "error" in result and result["error"]:
             raise HTTPException(status_code=400, detail=result["error"])
 
+        print("DEBUG_BACKTEST_RESULT:", result) # Explicitly log for Render Console
         return result
     except Exception as e:
         traceback.print_exc()
