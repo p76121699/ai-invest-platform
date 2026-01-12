@@ -25,7 +25,7 @@ export default function BacktestPage() {
         rsi_period: 14,
         rsi_lower: 30,
         rsi_upper: 70,
-        engine: "iterative", // 'iterative' or 'vectorized'
+        engine: "vectorized", // FAST Engine
         start: "2023-01-01",
         end: "2024-01-01"
     })
@@ -146,16 +146,7 @@ export default function BacktestPage() {
                             </Select>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label>Calculation Engine</Label>
-                            <Select value={params.engine} onValueChange={(v) => setParams({ ...params, engine: v })}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="iterative">Python Loop (Stable)</SelectItem>
-                                    <SelectItem value="vectorized">Pandas Vectorized (Fast)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+
 
                         {params.strategy === "ma_crossover" && (
                             <div className="grid grid-cols-2 gap-4">
@@ -316,17 +307,6 @@ export default function BacktestPage() {
                             </Table>
                         </CardContent>
                     </Card>
-
-                    {/* Debug View (For Analysis) */}
-                    <Card className="border-red-500 border-dashed">
-                        <CardHeader><CardTitle className="text-red-500 text-sm">Debug Data (Raw Response)</CardTitle></CardHeader>
-                        <CardContent>
-                            <pre className="bg-slate-950 p-4 rounded text-xs text-green-400 overflow-auto max-h-[300px]">
-                                {result ? JSON.stringify(result, null, 2) : "No result yet"}
-                            </pre>
-                        </CardContent>
-                    </Card>
-
 
                 </div>
             </div>
