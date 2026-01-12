@@ -54,16 +54,46 @@ class BacktestExecutor:
         slow_col = f'SMA_{slow_period}'
         
         df['signal'] = 0
-        if fast_col in df.columns and slow_col in df.columns:
-            # Golden Cross (Fast > Slow AND Slow > 0) - Prevention of false start on 0 padding
-            df.loc[(df[fast_col] > df[slow_col]) & (df[slow_col] > 0), 'signal'] = 1
-            # Death Cross (Fast < Slow)
-            df.loc[df[fast_col] < df[slow_col], 'signal'] = -1
         
-        # 3. Vectorized Backtest Simulation
-        df['target_position'] = 0
-        df.loc[df['signal'] == 1, 'target_position'] = 1
-        df.loc[df['signal'] == -1, 'target_position'] = 0
+        # Strategy Logic Switch
+        is_rsi = 'period' in strategy.parameters
+        
+        if is_rsi:
+             # RSI Reversal Strategy (Event Based)
+             # Buy when < Lower, Sell when > Upper
+             rsi_lower = strategy.parameters.get('lower', 30)
+             rsi_upper = strategy.parameters.get('upper', 70)
+             
+             if 'RSI' in df.columns:
+                 # 1 = Buy Signal, -1 = Sell Signal, 0 = Hold Status Quo
+                 df.loc[df['RSI'] < rsi_lower, 'signal'] = 1
+                 df.loc[df['RSI'] > rsi_upper, 'signal'] = -1
+                 
+                 # Vectorized Position Holding (Forward Fill)
+                 # We create a new column 'virtual_pos'
+                 # 1 -> Enter Long
+                 # -1 -> Exit (0)
+                 # 0 -> Keep Previous
+                 
+                 df['virtual_pos'] = np.nan
+                 df.loc[df['signal'] == 1, 'virtual_pos'] = 1
+                 df.loc[df['signal'] == -1, 'virtual_pos'] = 0
+                 
+                 df['target_position'] = df['virtual_pos'].ffill().fillna(0)
+                 
+        else:
+             # MA Crossover Strategy (State Based)
+             if fast_col in df.columns and slow_col in df.columns:
+                # Golden Cross (Fast > Slow AND Slow > 0)
+                df.loc[(df[fast_col] > df[slow_col]) & (df[slow_col] > 0), 'signal'] = 1
+                # Death Cross (Fast < Slow)
+                df.loc[df[fast_col] < df[slow_col], 'signal'] = -1
+             
+             # For MA (State Based), Signal 1 is holding, -1 is cash. 
+             # It is already "ffilled" by nature of the state check.
+             df['target_position'] = 0
+             df.loc[df['signal'] == 1, 'target_position'] = 1
+             df.loc[df['signal'] == -1, 'target_position'] = 0
         
         # Calculate Returns
         df['pct_change'] = df['close'].pct_change().fillna(0)
