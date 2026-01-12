@@ -107,6 +107,11 @@ class BacktestExecutor:
         # Cumulative product of (1 + return) * capital
         df['equity'] = initial_capital * (1 + df['strategy_return']).cumprod()
         
+        df['equity'] = initial_capital * (1 + df['strategy_return']).cumprod()
+        
+        # Sanitize DataFrame (NaN/Inf -> 0 or ffill)
+        df = df.replace([np.inf, -np.inf], np.nan).fillna(0) # Simple 0 fill for MVP safety
+
         equity_curve = df['equity'].values
         
         # 4. Extract Trades (Detailed)
@@ -167,11 +172,11 @@ class BacktestExecutor:
              sharpe_ratio = 0.0
 
         return BacktestResult(
-            total_return=float(total_return),
+            total_return=0.0 if np.isnan(total_return) else float(total_return),
             total_trades=len(trades),
-            final_equity=float(equity_curve[-1]),
-            max_drawdown=float(max_drawdown),
-            sharpe_ratio=float(sharpe_ratio),
+            final_equity=float(equity_curve[-1]) if len(equity_curve) > 0 else 0.0,
+            max_drawdown=0.0 if np.isnan(max_drawdown) else float(max_drawdown),
+            sharpe_ratio=0.0 if np.isnan(sharpe_ratio) else float(sharpe_ratio),
             equity_curve=equity_curve.tolist(),
             trades=trades
         )
