@@ -63,6 +63,18 @@ class NewsDetail(News):
         from_attributes = True
 
 # Backtest
+# Internal Strategy Schema for Executor
+class BacktestStrategy(BaseModel):
+    initial_capital: float = 100000.0
+    parameters: dict = {}
+
+class BacktestResult(BaseModel):
+    total_return: float
+    total_trades: int
+    final_equity: float
+    equity_curve: List[float]
+    trades: List[dict]
+
 class BacktestInput(BaseModel):
     ticker: str
     strategy: str = "ma_crossover"
