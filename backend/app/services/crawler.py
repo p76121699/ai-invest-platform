@@ -1,4 +1,5 @@
 import asyncio
+import random
 import httpx
 import feedparser
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,6 +27,20 @@ RSS_FEEDS = [
     {"url": "https://tw.stock.yahoo.com/news/rss", "source": "Yahoo Stock TW", "expect": 30},
     # Backfill attempt: Google News (Last 7 days of Stock Market news)
     {"url": "https://news.google.com/rss/search?q=台股+when:7d&hl=zh-TW&gl=TW&ceid=TW:zh-Hant", "source": "Google News (7d)", "expect": 50},
+]
+
+# User-Agent List for Rotation (Anti-Scraping)
+USER_AGENTS = [
+    # Chrome Windows
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    # Chrome MacOS
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    # Firefox Windows
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0",
+    # Safari MacOS
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
+    # Edge Windows
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0"
 ]
 
 BLACKLIST_IMAGES = [
@@ -236,7 +251,7 @@ async def fetch_and_process_news(db: AsyncSession):
     total_added = 0
     
     # 2. Fetch Content and Process (Using HTTPX to avoid browser overhead/hangs)
-    async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
+    async with httpx.AsyncClient(follow_redirects=True) as client:
         for feed_info, xml_content in rss_data:
             feed = await asyncio.to_thread(parse_feed_sync, xml_content)
             log_debug(f"Processing {feed_info['source']}: {len(feed.entries)} entries found.")
@@ -274,9 +289,33 @@ async def fetch_and_process_news(db: AsyncSession):
                     content_html = "<p>內容暫時無法取得</p>"
                     image_url = None
                     try:
-                        # log_debug(f"Fetching {link[:50]}...")
-                        resp = await client.get(link, timeout=10.0)
-                        if resp.status_code == 200:
+                        # Implement Exponential Backoff & User-Agent Rotation
+                        max_retries = 3
+                        resp = None
+                        
+                        for attempt in range(max_retries):
+                            try:
+                                # Rotate User-Agent per request
+                                current_headers = {"User-Agent": random.choice(USER_AGENTS)}
+                                
+                                resp = await client.get(link, headers=current_headers, timeout=10.0)
+                                
+                                if resp.status_code == 200:
+                                    break # Success
+                                elif resp.status_code == 429:
+                                    # Too Many Requests - Wait longer
+                                    wait = 2 ** attempt # 1s, 2s, 4s
+                                    # log_debug(f"Rate limited on {link}, waiting {wait}s...")
+                                    await asyncio.sleep(wait)
+                                else:
+                                    # Other errors (404, 500) - maybe retry?
+                                    pass
+                            except Exception as req_err:
+                                # Network error - Wait and retry
+                                wait = 2 ** attempt
+                                await asyncio.sleep(wait)
+                        
+                        if resp and resp.status_code == 200:
                             content_html = clean_html_static(resp.text)
                             
                             # Simple Image Extraction (OG Image -> Body Image)
