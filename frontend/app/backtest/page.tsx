@@ -25,6 +25,7 @@ export default function BacktestPage() {
         rsi_period: 14,
         rsi_lower: 30,
         rsi_upper: 70,
+        engine: "iterative", // 'iterative' or 'vectorized'
         start: "2023-01-01",
         end: "2024-01-01"
     })
@@ -78,6 +79,7 @@ export default function BacktestPage() {
                 rsi_period: params.rsi_period,
                 rsi_lower: params.rsi_lower,
                 rsi_upper: params.rsi_upper,
+                engine: params.engine,
                 start: params.start,
                 end: params.end
             }
@@ -140,6 +142,17 @@ export default function BacktestPage() {
                                 <SelectContent>
                                     <SelectItem value="ma_crossover">MA Crossover</SelectItem>
                                     <SelectItem value="rsi_reversal">RSI Reversal</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Calculation Engine</Label>
+                            <Select value={params.engine} onValueChange={(v) => setParams({ ...params, engine: v })}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="iterative">Python Loop (Stable)</SelectItem>
+                                    <SelectItem value="vectorized">Pandas Vectorized (Fast)</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -251,15 +264,17 @@ export default function BacktestPage() {
                         <CardHeader><CardTitle>Equity Curve</CardTitle></CardHeader>
                         <CardContent className="h-[300px]">
                             {result && chartData.length > 0 ? (
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={chartData}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="day" />
-                                        <YAxis domain={['auto', 'auto']} />
-                                        <ChartTooltip formatter={(value: any) => (typeof value === 'number' ? value.toFixed(2) : value)} />
-                                        <Line type="monotone" dataKey="equity" stroke="#10b981" strokeWidth={2} dot={false} />
-                                    </LineChart>
-                                </ResponsiveContainer>
+                                <div style={{ width: '100%', height: 300 }}>
+                                    <ResponsiveContainer>
+                                        <LineChart data={chartData}>
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis dataKey="day" />
+                                            <YAxis domain={['auto', 'auto']} />
+                                            <ChartTooltip formatter={(value: any) => (typeof value === 'number' ? value.toFixed(2) : value)} />
+                                            <Line type="monotone" dataKey="equity" stroke="#10b981" strokeWidth={2} dot={false} />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </div>
                             ) : (
                                 <div className="h-full flex items-center justify-center text-muted-foreground">
                                     Run a backtest to see results
@@ -299,6 +314,16 @@ export default function BacktestPage() {
                                     })}
                                 </TableBody>
                             </Table>
+                        </CardContent>
+                    </Card>
+
+                    {/* Debug View (For Analysis) */}
+                    <Card className="border-red-500 border-dashed">
+                        <CardHeader><CardTitle className="text-red-500 text-sm">Debug Data (Raw Response)</CardTitle></CardHeader>
+                        <CardContent>
+                            <pre className="bg-slate-950 p-4 rounded text-xs text-green-400 overflow-auto max-h-[300px]">
+                                {result ? JSON.stringify(result, null, 2) : "No result yet"}
+                            </pre>
                         </CardContent>
                     </Card>
 

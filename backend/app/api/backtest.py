@@ -42,7 +42,8 @@ async def run(request: schemas.BacktestInput):
             request.ticker,
             request.start,
             request.end,
-            strategy
+            strategy,
+            request.engine # Pass engine selection
         )
         
         if "error" in result and result["error"]:

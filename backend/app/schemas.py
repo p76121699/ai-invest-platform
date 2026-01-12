@@ -88,6 +88,7 @@ class BacktestInput(BaseModel):
     rsi_lower: Optional[int] = 30
     rsi_upper: Optional[int] = 70
     
+    engine: Optional[str] = "iterative" # iterative or vectorized
     start: str
     end: str
 

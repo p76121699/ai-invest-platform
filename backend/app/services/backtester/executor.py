@@ -29,7 +29,127 @@ class BacktestExecutor:
         df = df.replace([np.inf, -np.inf], np.nan).fillna(0)
         return df
 
-    def run_backtest(self, data: pd.DataFrame, strategy: BacktestStrategy) -> BacktestResult:
+    def run_backtest_vectorized(self, data: pd.DataFrame, strategy: BacktestStrategy) -> BacktestResult:
+        """
+        Executes the backtest using Vectorized Pandas (Fast).
+        """
+        if data.empty:
+             return self._empty_result(strategy.initial_capital)
+
+        df = data.copy()
+        # Ensure column names are lower case
+        df.columns = [c.lower() for c in df.columns]
+        
+        initial_capital = strategy.initial_capital
+        
+        # 1. Feature Engineering
+        df = self._calculate_indicators(df, strategy)
+        df = df.fillna(0)
+        
+        # 2. Generate Signals
+        # Check standard MA Strategy
+        fast_period = strategy.parameters.get('fast_period', 5)
+        slow_period = strategy.parameters.get('slow_period', 20)
+        fast_col = f'SMA_{fast_period}'
+        slow_col = f'SMA_{slow_period}'
+        
+        df['signal'] = 0
+        if fast_col in df.columns and slow_col in df.columns:
+            # Golden Cross (Fast > Slow AND Slow > 0) - Prevention of false start on 0 padding
+            df.loc[(df[fast_col] > df[slow_col]) & (df[slow_col] > 0), 'signal'] = 1
+            # Death Cross (Fast < Slow)
+            df.loc[df[fast_col] < df[slow_col], 'signal'] = -1
+        
+        # 3. Vectorized Backtest Simulation
+        df['target_position'] = 0
+        df.loc[df['signal'] == 1, 'target_position'] = 1
+        df.loc[df['signal'] == -1, 'target_position'] = 0
+        
+        # Calculate Returns
+        df['pct_change'] = df['close'].pct_change().fillna(0)
+        df['position'] = df['target_position'].shift(1).fillna(0)
+        df['strategy_return'] = df['position'] * df['pct_change']
+        
+        # Calculate Equity
+        df['equity'] = initial_capital * (1 + df['strategy_return']).cumprod()
+        
+        # Sanitize DataFrame (NaN/Inf -> 0 or ffill)
+        df = df.replace([np.inf, -np.inf], np.nan).fillna(0) # Simple 0 fill for MVP safety
+
+        equity_curve = df['equity'].values
+        
+        # 4. Extract Trades (Detailed)
+        trades = []
+        in_trade = False
+        entry_price = 0.0
+        entry_date = ""
+        quantity = 0.0 # Capture quantity
+        
+        # Iterating for trade extraction is fast enough for <5000 rows
+        for i in range(1, len(df)):
+            pos = df['position'].iloc[i]
+            prev_pos = df['position'].iloc[i-1]
+            price = df['close'].iloc[i]
+            date_str = str(df.index[i]).split()[0]
+            current_equity = df['equity'].iloc[i]
+            
+            # Buy Trigger
+            if pos == 1 and prev_pos == 0:
+                in_trade = True
+                entry_price = float(price)
+                entry_date = date_str
+                # Calculate Quantity: Equity / Price (All-in)
+                # Note: Equity at index 'i' is before the strategy return of 'i+1' hits?
+                # Actually in vectorized: 'equity' column is post-return. 
+                # At entry (buy at close), return is 0 (since pos was 0). 
+                # So current_equity is effectively Cash.
+                if entry_price > 0:
+                    quantity = float(current_equity / entry_price)
+                
+            # Sell Trigger
+            elif pos == 0 and prev_pos == 1:
+                if in_trade:
+                    exit_price = float(price)
+                    # PnL = (Exit - Entry) * Quantity
+                    pnl = (exit_price - entry_price) * quantity
+                    
+                    trades.append({
+                        "entry_date": entry_date,
+                        "exit_date": date_str,
+                        "entry_price": entry_price,
+                        "exit_price": exit_price,
+                        "quantity": quantity,
+                        "pnl": float(pnl),
+                        "status": "CLOSED"
+                    })
+                    in_trade = False
+
+        # 5. Stats
+        total_return = (equity_curve[-1] - initial_capital) / initial_capital
+        
+        # Max Drawdown
+        running_max = np.maximum.accumulate(equity_curve)
+        drawdown = (equity_curve - running_max) / running_max
+        max_drawdown = float(drawdown.min())
+
+        # Sharpe
+        returns = pd.Series(equity_curve).pct_change().dropna()
+        if len(returns) > 1 and returns.std() > 0:
+             sharpe_ratio = (returns.mean() / returns.std()) * np.sqrt(252)
+        else:
+             sharpe_ratio = 0.0
+
+        return BacktestResult(
+            total_return=0.0 if np.isnan(total_return) else float(total_return),
+            total_trades=len(trades),
+            final_equity=float(equity_curve[-1]) if len(equity_curve) > 0 else 0.0,
+            max_drawdown=0.0 if np.isnan(max_drawdown) else float(max_drawdown),
+            sharpe_ratio=0.0 if np.isnan(sharpe_ratio) else float(sharpe_ratio),
+            equity_curve=equity_curve.tolist(),
+            trades=trades
+        )
+
+    def run_backtest_iterative(self, data: pd.DataFrame, strategy: BacktestStrategy) -> BacktestResult:
         """
         Executes the backtest using a robust Python Loop (Iterative).
         Slower than vectorization but strictly safe against NaN/Serialization crashes.
@@ -193,12 +313,16 @@ class BacktestExecutor:
 # Standalone Glue Function for API
 from app.services.backtester.data_loader import load_price_history_cached
 
-def run_backtest(ticker: str, start: str, end: str, strategy: BacktestStrategy):
+def run_backtest(ticker: str, start: str, end: str, strategy: BacktestStrategy, engine: str = "iterative"):
     # 1. Load Data
     df, real_start = load_price_history_cached(ticker, start, end)
     
     # 2. Execute
     executor = BacktestExecutor()
-    result = executor.run_backtest(df, strategy)
+    
+    if engine == "vectorized":
+        result = executor.run_backtest_vectorized(df, strategy)
+    else:
+        result = executor.run_backtest_iterative(df, strategy)
     
     return result.dict()
