@@ -104,11 +104,11 @@ export default function BacktestPage() {
             equity: val
         }))
 
-    // Stats - Flattened in backend response
-    const finalEquity = result?.final_equity || 0
-    const totalReturn = result?.total_return || 0
-    const maxDrawdown = result?.max_drawdown || 0
-    const sharpeRatio = result?.sharpe_ratio || 0
+    // Stats - Flattened in backend response (Handle both cases defensively)
+    const finalEquity = result?.final_equity ?? result?.finalEquity ?? 0
+    const totalReturn = result?.total_return ?? result?.totalReturn ?? 0
+    const maxDrawdown = result?.max_drawdown ?? result?.maxDrawdown ?? 0
+    const sharpeRatio = result?.sharpe_ratio ?? result?.sharpeRatio ?? 0
 
     return (
         <div className="space-y-6">
@@ -224,22 +224,22 @@ export default function BacktestPage() {
                         <TooltipProvider>
                             <StatCard
                                 label="Final Equity"
-                                value={result ? `$${finalEquity.toFixed(2)}` : "-"}
+                                value={typeof finalEquity === 'number' ? `$${finalEquity.toFixed(2)}` : "-"}
                                 tooltip="The ending balance of your portfolio after the backtest."
                             />
                             <StatCard
                                 label="Total Return"
-                                value={result ? `${(totalReturn * 100).toFixed(1)}% ` : "-"}
+                                value={typeof totalReturn === 'number' ? `${(totalReturn * 100).toFixed(1)}% ` : "-"}
                                 tooltip="The total percentage gain or loss over the period."
                             />
                             <StatCard
                                 label="Max Drawdown"
-                                value={result ? `${(maxDrawdown * 100).toFixed(1)}% ` : "-"}
+                                value={typeof maxDrawdown === 'number' ? `${(maxDrawdown * 100).toFixed(1)}% ` : "-"}
                                 tooltip="The largest single drop from peak to bottom in the portfolio value."
                             />
                             <StatCard
                                 label="Sharpe Ratio"
-                                value={result ? sharpeRatio.toFixed(2) : "-"}
+                                value={typeof sharpeRatio === 'number' ? sharpeRatio.toFixed(2) : "-"}
                                 tooltip="Risk-adjusted return. >1 is good, >2 is excellent."
                             />
                         </TooltipProvider>
@@ -249,13 +249,13 @@ export default function BacktestPage() {
                     <Card>
                         <CardHeader><CardTitle>Equity Curve</CardTitle></CardHeader>
                         <CardContent className="h-[300px]">
-                            {result ? (
+                            {result && chartData.length > 0 ? (
                                 <ResponsiveContainer width="100%" height="100%">
                                     <LineChart data={chartData}>
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis dataKey="day" />
                                         <YAxis domain={['auto', 'auto']} />
-                                        <ChartTooltip formatter={(value: any) => typeof value === 'number' ? value.toFixed(2) : value} />
+                                        <ChartTooltip formatter={(value: any) => (typeof value === 'number' ? value.toFixed(2) : value)} />
                                         <Line type="monotone" dataKey="equity" stroke="#10b981" strokeWidth={2} dot={false} />
                                     </LineChart>
                                 </ResponsiveContainer>
@@ -282,17 +282,20 @@ export default function BacktestPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {result?.trades?.map((trade: any, i: number) => (
-                                        <TableRow key={i}>
-                                            <TableCell>{trade.entry_date}</TableCell>
-                                            <TableCell>{trade.exit_date}</TableCell>
-                                            <TableCell>${trade.entry_price?.toFixed(2)}</TableCell>
-                                            <TableCell>${trade.exit_price?.toFixed(2)}</TableCell>
-                                            <TableCell className={trade.pnl >= 0 ? "text-green-500 font-bold" : "text-red-500 font-bold"}>
-                                                ${trade.pnl?.toFixed(2)}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
+                                    {result?.trades?.map((trade: any, i: number) => {
+                                        const pnl = trade.pnl ?? trade.PnL ?? 0
+                                        return (
+                                            <TableRow key={i}>
+                                                <TableCell>{trade.entry_date || "-"}</TableCell>
+                                                <TableCell>{trade.exit_date || "-"}</TableCell>
+                                                <TableCell>${(trade.entry_price ?? 0).toFixed(2)}</TableCell>
+                                                <TableCell>${(trade.exit_price ?? 0).toFixed(2)}</TableCell>
+                                                <TableCell className={pnl >= 0 ? "text-green-500 font-bold" : "text-red-500 font-bold"}>
+                                                    ${pnl.toFixed(2)}
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })}
                                 </TableBody>
                             </Table>
                         </CardContent>
