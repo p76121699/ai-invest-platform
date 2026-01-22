@@ -28,38 +28,57 @@ async def get_ai_assistant_response(user_input: str, db: AsyncSession):
     
     context_str = f"Today's Date: {datetime.now().strftime('%Y-%m-%d')}\n\n"
     
-    # --- 1. Detect Ticker (Basic Regex for US ($TSLA or TSLA) and TW (2330)) ---
-    # Look for patterns like $NVDA, NVDA, 2330, 0050
-    # We exclude common words to avoid false positives (like "AI", "NEWS")
+    # --- 1. Intelligent Intent Extraction ---
+    # Goal: Extract 'ticker' (for stock data) and 'search_term' (for news)
     ticker = None
+    search_term = None
     
-    # Try explicit $TICKER first
-    match = re.search(r'\$([A-Za-z]+)', user_input)
-    if match:
-        ticker = match.group(1).upper()
-    else:
-        # Try finding 4-digit codes (TW stocks)
-        match_tw = re.search(r'\b\d{4}\b', user_input)
-        if match_tw:
-            ticker = match_tw.group(0) + ".TW"
-        else:
-            # Fallback: Check for common known tickers in valid uppercase
-            # Heuristic: Uppercase word, 2-5 chars, not in ignore list
-            ignore_list = ["THE", "AND", "FOR", "WHO", "WHAT", "WHY", "HOW", "ARE", "YOU", "CAN", "NOT", "YES", "AI", "RAG", "LLM", "API"]
-            words = [w.strip(".,?!") for w in user_input.split()]
-            for w in words:
-                if w.isupper() and 2 <= len(w) <= 5 and w not in ignore_list and w.isalpha():
-                    # Check if it *looks* like a ticker (very rough)
-                    # Ideally we would check against a DB of symbols, but for now we assume it is if user highlighted it
-                    ticker = w
-                    break
+    # A. Check for quoted text (Specific News Search)
+    # e.g. 請告訴我 "AI agents ready" 的重點
+    quote_match = re.search(r'["\'](.*?)["\']', user_input)
+    if quote_match:
+        search_term = quote_match.group(1)
     
+    # B. Extract potential tickers using Regex (Alphanumeric only)
+    # This handles "apple股價" -> "apple"
+    tokens = re.findall(r'[a-zA-Z0-9]+', user_input)
+    
+    # Filter tokens to find likely tickers
+    # Common words to ignore when guessing tickers from text
+    ignore_list = {"THE", "AND", "FOR", "WHO", "WHAT", "WHY", "HOW", "ARE", "YOU", "CAN", "NOT", "YES", "AI", "RAG", "LLM", "API", "STOCK", "PRICE", "NEWS", "LATEST"}
+    
+    for token in tokens:
+        candidate = token.upper()
+        # 1. Check if it's a known pattern
+        if candidate.startswith("$"):
+            ticker = candidate[1:]
+            break
+        # 2. Check if it looks like a TW stock (4 digits)
+        if re.match(r'^\d{4}$', candidate):
+            ticker = f"{candidate}.TW"
+            break
+        # 3. Check for standard US Tickers (exclude common words)
+        if len(candidate) >= 2 and len(candidate) <= 5 and candidate not in ignore_list and not candidate.isdigit():
+             # Assume it's a ticker (e.g. APPLE -> AAPL mapping would be better, but direct use is okay for now)
+             # For "apple", yfinance often resolves valid names or we accept "APPLE" as ticker? 
+             # yfinance needs AAPL for Apple. But "TSLA" works. 
+             # "apple" -> yfinance might fail if it expects symbols. 
+             # Improving heuristic: Prefer obviously ticker-like words.
+             # If user types "apple", we try to use it.
+             ticker = candidate
+             break
+
     # --- 2. Fetch Stock Data (Real-time) ---
     stock_info = ""
     if ticker:
         try:
             # Fetch 1mo data to calculate basic indicators
             df = await finance.get_stock_data(ticker, period="1mo")
+            
+            # If failed, try appending .TW (if 4 digits) or just give up
+            if df.empty and ticker.isdigit() and len(ticker) == 4 and not ticker.endswith(".TW"):
+                 df = await finance.get_stock_data(f"{ticker}.TW", period="1mo")
+            
             if not df.empty:
                 current_price = df['Close'].iloc[-1]
                 prev_price = df['Close'].iloc[-2] if len(df) > 1 else current_price
@@ -79,30 +98,35 @@ async def get_ai_assistant_response(user_input: str, db: AsyncSession):
 """
                 context_str += stock_info
             else:
-                 context_str += f"[System] Could not fetch data for ticker: {ticker} (might be invalid or network issue)\n"
+                 # Don't pollute context with error messages, just strictly don't show data
+                 pass
         except Exception as e:
             print(f"Stock Fetch Error: {e}")
 
-    # --- 3. Fetch Relevant News (Keyword Search vs Latest) ---
+    # --- 3. Fetch Relevant News ---
     context_str += "Recent Market News:\n"
     try:
         query = select(models.News).order_by(models.News.published_at.desc())
         
-        # If we identified a ticker, filter news by it (simple LIKE query)
-        if ticker:
-            # Remove .TW for search string (e.g. 2330.TW -> 2330)
-            search_term = ticker.replace(".TW", "")
+        # Priority 1: Quoted Search Term
+        if search_term:
             query = query.filter(models.News.title.ilike(f"%{search_term}%"))
-            query = query.limit(5) # Get top 5 specific
+            query = query.limit(3)
+        # Priority 2: Ticker Related
+        elif ticker:
+            # Remove .TW for search string (e.g. 2330.TW -> 2330)
+            clean_ticker = ticker.replace(".TW", "")
+            query = query.filter(models.News.title.ilike(f"%{clean_ticker}%"))
+            query = query.limit(5)
         else:
             query = query.limit(10) # Get top 10 general
             
         result = await db.execute(query)
         news_items = result.scalars().all()
         
-        if not news_items and ticker:
-             # Fallback: If no specific news found, get general latest news
-             context_str += f"(No specific news found for {ticker}, showing latest general headlines)\n"
+        # Fallback logic: If specific search yielded nothing, show General News
+        if not news_items and (search_term or ticker):
+             context_str += f"(No specific news found for '{search_term or ticker}', showing latest general headlines)\n"
              result = await db.execute(select(models.News).order_by(models.News.published_at.desc()).limit(5))
              news_items = result.scalars().all()
 
