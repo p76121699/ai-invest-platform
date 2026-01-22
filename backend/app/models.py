@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, JSON, Float, Date, Boolean, Uuid
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, JSON, Float, Date, Boolean, Uuid, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
@@ -30,6 +30,10 @@ class News(Base):
     image_url = Column(Text, nullable=True)
     source = Column(String(50)) # Kept for compatibility/tracking
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    __table_args__ = (
+        Index('ix_news_title_gin', 'title', postgresql_using='gin', postgresql_ops={'title': 'gin_trgm_ops'}),
+    )
 
 class BacktestRun(Base):
     __tablename__ = "backtest_runs"
