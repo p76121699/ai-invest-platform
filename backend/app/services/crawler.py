@@ -468,15 +468,48 @@ async def fetch_and_process_news(db: AsyncSession):
     return {"feeds_fetched": len(rss_data), "total_added": total_added}
 
 async def cleanup_old_news(db: AsyncSession, days: int = 30):
+    """
+    Maintenance task to keep the database size under control (Free Tier Friendly).
+    Policy:
+    1. Time-based: Delete news older than 'days' (default 30).
+    2. Size-based (FIFO): Keep max 10,000 records (approx 50MB-100MB).
+       If count > 10,000, delete the oldest records regardless of time.
+    """
+    # 1. Time-based Cleanup
     cutoff = datetime.utcnow() - timedelta(days=days)
-    log_debug(f"Cleaning up news older than {days} days (before {cutoff})...")
+    log_debug(f"Cleanup: Removing news older than {days} days (before {cutoff})...")
     
-    # Check count first (Optional, but good for logging)
-    # stmt = select(func.count(models.News.id)).where(models.News.published_at < cutoff)
+    from sqlalchemy import delete, func, select
     
-    from sqlalchemy import delete
-    stmt = delete(models.News).where(models.News.published_at < cutoff)
-    result = await db.execute(stmt)
+    # Execute Time Cleanup
+    stmt_time = delete(models.News).where(models.News.published_at < cutoff)
+    result_time = await db.execute(stmt_time)
+    log_debug(f"Cleanup (Time): Deleted {result_time.rowcount} expired items.")
+    
+    # 2. Size-based Cleanup (Max Limit)
+    MAX_ITEMS = 10000 
+    # Calculation: 10,000 records * ~10KB/record = ~100MB. 
+    # This is well within the 500MB-1GB free tier limit.
+    
+    # Get current count
+    count_res = await db.execute(select(func.count(models.News.id)))
+    total_count = count_res.scalar()
+    
+    if total_count > MAX_ITEMS:
+        excess = total_count - MAX_ITEMS
+        log_debug(f"Cleanup (Size): Count {total_count} exceeds limit {MAX_ITEMS}. Deleting {excess} oldest items...")
+        
+        # Identify IDs to delete (Oldest First)
+        # Subquery to find the IDs of the oldest 'excess' rows
+        subquery = (
+            select(models.News.id)
+            .order_by(models.News.published_at.asc())
+            .limit(excess)
+        )
+        
+        # Delete them
+        stmt_size = delete(models.News).where(models.News.id.in_(subquery))
+        result_size = await db.execute(stmt_size)
+        log_debug(f"Cleanup (Size): Deleted {result_size.rowcount} old items to free space.")
+    
     await db.commit()
-    
-    log_debug(f"Deleted {result.rowcount} old news items.")

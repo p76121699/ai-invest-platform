@@ -68,3 +68,7 @@ Thumbs.db
 *.onnx
 *.weights
 江家德.pdf
+interview_summary.md
+interview_answers*.md
+tech_concepts_*.md
+project_technical_deep_dive.md
