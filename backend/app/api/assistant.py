@@ -25,66 +25,68 @@ from app.services import finance
 async def get_ai_assistant_response(user_input: str, db: AsyncSession):
     if not settings.GOOGLE_API_KEY:
         raise HTTPException(status_code=500, detail="Gemini API Key not configured")
+
+    # --- Step 1: Intent Analysis (The "Smart" Agent) ---
+    # We use the LLM to extract Ticker and Language instead of fragile Regex
+    intent_data = {"ticker": None, "search_term": None, "language": "Traditional Chinese"}
     
+    try:
+        model = genai.GenerativeModel('gemini-2.0-flash-lite-001')
+        intent_prompt = f"""
+        Analyze the following user query and extract key information in JSON format.
+        
+        Query: "{user_input}"
+        
+        Requirements:
+        1. "ticker": Extract the stock ticker symbol if a company is mentioned. 
+           - Convert company names to symbols (e.g., "Apple" -> "AAPL", "輝達" -> "NVDA", "台積電" -> "2330.TW", "鴻海" -> "2317.TW").
+           - If it's a Taiwan stock, append ".TW".
+           - If no company/stock is mentioned, return null.
+        2. "search_term": Extract the main subject for news search.
+        3. "language": Detect the language of the query (e.g., "Traditional Chinese", "English").
+        
+        Output format: JSON only.
+        {{
+            "ticker": "AAPL",
+            "search_term": "Apple",
+            "language": "English"
+        }}
+        """
+        # Generate Intent
+        intent_resp = await asyncio.to_thread(model.generate_content, intent_prompt)
+        text = intent_resp.text.strip()
+        # Simple cleanup to ensure JSON parsing
+        if "```json" in text:
+            text = text.split("```json")[1].split("```")[0]
+        elif "```" in text:
+            text = text.split("```")[1].split("```")[0]
+            
+        import json
+        intent_data = json.loads(text)
+        print(f"DEBUG: Intent Detected -> {intent_data}")
+        
+    except Exception as e:
+        print(f"Intent Analysis Failed: {e}")
+        # Fallback to defaults if LLM analysis fails
+        pass
+
+    ticker = intent_data.get("ticker")
+    search_term = intent_data.get("search_term")
+    user_lang = intent_data.get("language", "Traditional Chinese")
+    
+    # --- Step 2: Fetch Real-time Data ---
     context_str = f"Today's Date: {datetime.now().strftime('%Y-%m-%d')}\n\n"
     
-    # --- 1. Intelligent Intent Extraction ---
-    # Goal: Extract 'ticker' (for stock data) and 'search_term' (for news)
-    ticker = None
-    search_term = None
-    
-    # A. Check for quoted text (Specific News Search)
-    # e.g. 請告訴我 "AI agents ready" 的重點
-    quote_match = re.search(r'["\'](.*?)["\']', user_input)
-    if quote_match:
-        search_term = quote_match.group(1)
-    
-    # B. Extract potential tickers using Regex (Alphanumeric only)
-    # This handles "apple股價" -> "apple"
-    tokens = re.findall(r'[a-zA-Z0-9]+', user_input)
-    
-    # Filter tokens to find likely tickers
-    # Common words to ignore when guessing tickers from text
-    ignore_list = {"THE", "AND", "FOR", "WHO", "WHAT", "WHY", "HOW", "ARE", "YOU", "CAN", "NOT", "YES", "AI", "RAG", "LLM", "API", "STOCK", "PRICE", "NEWS", "LATEST"}
-    
-    for token in tokens:
-        candidate = token.upper()
-        # 1. Check if it's a known pattern
-        if candidate.startswith("$"):
-            ticker = candidate[1:]
-            break
-        # 2. Check if it looks like a TW stock (4 digits)
-        if re.match(r'^\d{4}$', candidate):
-            ticker = f"{candidate}.TW"
-            break
-        # 3. Check for standard US Tickers (exclude common words)
-        if len(candidate) >= 2 and len(candidate) <= 5 and candidate not in ignore_list and not candidate.isdigit():
-             # Assume it's a ticker (e.g. APPLE -> AAPL mapping would be better, but direct use is okay for now)
-             # For "apple", yfinance often resolves valid names or we accept "APPLE" as ticker? 
-             # yfinance needs AAPL for Apple. But "TSLA" works. 
-             # "apple" -> yfinance might fail if it expects symbols. 
-             # Improving heuristic: Prefer obviously ticker-like words.
-             # If user types "apple", we try to use it.
-             ticker = candidate
-             break
-
-    # --- 2. Fetch Stock Data (Real-time) ---
     stock_info = ""
     if ticker:
         try:
             # Fetch 1mo data to calculate basic indicators
             df = await finance.get_stock_data(ticker, period="1mo")
-            
-            # If failed, try appending .TW (if 4 digits) or just give up
-            if df.empty and ticker.isdigit() and len(ticker) == 4 and not ticker.endswith(".TW"):
-                 df = await finance.get_stock_data(f"{ticker}.TW", period="1mo")
-            
             if not df.empty:
                 current_price = df['Close'].iloc[-1]
                 prev_price = df['Close'].iloc[-2] if len(df) > 1 else current_price
                 change = ((current_price - prev_price) / prev_price) * 100
                 
-                # Calculate RSI on the fly
                 df_indic = finance.calculate_indicators(df)
                 rsi = df_indic['RSI'].iloc[-1] if 'RSI' in df_indic else "N/A"
                 macd = df_indic['MACD'].iloc[-1] if 'MACD' in df_indic else "N/A"
@@ -98,33 +100,29 @@ async def get_ai_assistant_response(user_input: str, db: AsyncSession):
 """
                 context_str += stock_info
             else:
-                 # Don't pollute context with error messages, just strictly don't show data
                  pass
         except Exception as e:
             print(f"Stock Fetch Error: {e}")
 
-    # --- 3. Fetch Relevant News ---
+    # --- Step 3: Fetch News ---
     context_str += "Recent Market News:\n"
     try:
         query = select(models.News).order_by(models.News.published_at.desc())
         
-        # Priority 1: Quoted Search Term
-        if search_term:
-            query = query.filter(models.News.title.ilike(f"%{search_term}%"))
-            query = query.limit(3)
-        # Priority 2: Ticker Related
+        if search_term and str(search_term).lower() != "null":
+             # Use the LLM-extracted search term
+             query = query.filter(models.News.title.ilike(f"%{search_term}%"))
+             query = query.limit(5)
         elif ticker:
-            # Remove .TW for search string (e.g. 2330.TW -> 2330)
-            clean_ticker = ticker.replace(".TW", "")
-            query = query.filter(models.News.title.ilike(f"%{clean_ticker}%"))
-            query = query.limit(5)
+             clean_ticker = ticker.replace(".TW", "")
+             query = query.filter(models.News.title.ilike(f"%{clean_ticker}%"))
+             query = query.limit(5)
         else:
-            query = query.limit(10) # Get top 10 general
+             query = query.limit(10)
             
         result = await db.execute(query)
         news_items = result.scalars().all()
         
-        # Fallback logic: If specific search yielded nothing, show General News
         if not news_items and (search_term or ticker):
              context_str += f"(No specific news found for '{search_term or ticker}', showing latest general headlines)\n"
              result = await db.execute(select(models.News).order_by(models.News.published_at.desc()).limit(5))
@@ -136,35 +134,23 @@ async def get_ai_assistant_response(user_input: str, db: AsyncSession):
             
     except Exception as db_err:
         print(f"Context Fetch Error: {db_err}")
-        context_str += "(News database unavailable)\n"
 
+    # --- Step 4: Generate Final Response ---
     try:
-        # Try preferred model: gemini-2.0-flash-lite-001
         model = genai.GenerativeModel('gemini-2.0-flash-lite-001')
         
-        # Enhanced Prompt with Structured Engineering
         system_instruction = f"""
 # ROLE & TASK
-You are an expert financial analyst AI for the 'AI Invest Platform'. Your task is to provide accurate, data-backed investment insights based STRICTLY on the provided context. You must analyze market data and news to answer user queries professionally.
+You are an expert financial analyst AI for the 'AI Invest Platform'.
+Your goal is to answer the user's question using the provided context.
+
+# STRICT CONSTRAINTS
+1. **LANGUAGE**: You MUST answer in {user_lang}. Do NOT use English if the user asked in Chinese.
+2. **DATA**: Use the provided Real-time Market Data and News.
+3. **HONESTY**: If you don't have the data (e.g. stock price is missing), say "I couldn't retrieve the real-time data for [Company]" in {user_lang}, do not make up numbers.
 
 # CONTEXT
-The following is the ONLY real-time data and news you have access to. Do not hallucinate external information not present here.
 {context_str}
-
-# INSTRUCTIONS
-1. Analyze the User Question to understand the intent (e.g., price check, sentiment analysis, summary).
-2. "Chain of Thought": 
-   - First, scan the "Real-time Market Data" for relevant price indicators (RSI, MACD, etc.).
-   - Second, read the "Recent Market News" for sentiment drivers.
-   - Third, synthesize these two sources to form an answer.
-3. Answer the question using the data found.
-4. If the provided context is insufficient, state clearly what is missing rather than making up facts.
-
-# CONSTRAINTS & FORMAT
-- Language: STRICTLY output in the SAME language as the User Question (e.g., Traditional Chinese for Chinese input, English for English input).
-- Tone: Professional, objective, and concise. No conversational filler.
-- Formatting: Use Markdown (bullet points, bold text for numbers/tickers).
-- Safety: Do not provide financial advice (e.g., "You must buy now"). Instead, say "indicators suggest a bullish trend" or "market sentiment is positive".
 
 # USER QUESTION
 {user_input}
