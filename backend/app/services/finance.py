@@ -18,14 +18,7 @@ def fetch_yfinance_sync(ticker: str, period: str = "1y", interval: str = "1d", s
             return data
             
     try:
-        # Create a session with a custom User-Agent to avoid 429 Rate Limits/Blocking
-        import requests
-        session = requests.Session()
-        session.headers.update({
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        })
-
-        stock = yf.Ticker(ticker, session=session)
+        stock = yf.Ticker(ticker)
         # Assuming run_backtest and get_stock_data use consistent arguments
         if start and end:
             df = stock.history(start=start, end=end, interval=interval)
@@ -36,7 +29,7 @@ def fetch_yfinance_sync(ticker: str, period: str = "1y", interval: str = "1d", s
         if df.empty and ticker.isdigit() and len(ticker) == 4:
             retry_ticker = f"{ticker}.TW"
             print(f"Retrying with {retry_ticker}")
-            stock = yf.Ticker(retry_ticker, session=session)
+            stock = yf.Ticker(retry_ticker)
             if start and end:
                 df = stock.history(start=start, end=end, interval=interval)
             else:

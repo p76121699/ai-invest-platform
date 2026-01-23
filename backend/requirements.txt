@@ -47,3 +47,5 @@ nltk
 # Utils
 requests
 google-generativeai>=0.7.2
+curl_cffi
+requests_rate_limiter
