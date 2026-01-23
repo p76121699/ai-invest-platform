@@ -110,8 +110,21 @@ async def get_ai_assistant_response(user_input: str, db: AsyncSession):
         query = select(models.News).order_by(models.News.published_at.desc())
         
         if search_term and str(search_term).lower() != "null":
-             # Use the LLM-extracted search term
+             # 1. Try Strict Keyword Match
+             # e.g. "Apple" -> "%Apple%"
              query = query.filter(models.News.title.ilike(f"%{search_term}%"))
+             
+             # Check if we get results with this strict filter
+             # This is a bit complex in one query object. 
+             # Simpler approach: Just use the filter. 
+             # If the user quoted a LONG sentence "沙崙資安大樓火警...", ILIKE might fail if DB has "沙崙資安大樓火警" (partial).
+             # So we should probably use substantial overlap or just truncate the search term if it's very long.
+             if len(search_term) > 20: 
+                 # Heuristic: If search term is a long sentence, take the first 10 chars as key
+                 # This assumes the important part is at the start (common in headlines)
+                 short_term = search_term[:10]
+                 query = select(models.News).order_by(models.News.published_at.desc()).filter(models.News.title.ilike(f"%{short_term}%"))
+             
              query = query.limit(5)
         elif ticker:
              clean_ticker = ticker.replace(".TW", "")
