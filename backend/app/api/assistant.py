@@ -53,7 +53,13 @@ async def get_ai_assistant_response(user_input: str, db: AsyncSession):
         }}
         """
         # Generate Intent
-        intent_resp = await asyncio.to_thread(model.generate_content, intent_prompt)
+        # Disable retries to avoid long waits on Rate Limit (429)
+        from google.api_core import retry
+        intent_resp = await asyncio.to_thread(
+            model.generate_content, 
+            intent_prompt,
+            request_options={'retry': retry.Retry(predicate=lambda x: False)}
+        )
         text = intent_resp.text.strip()
         # Simple cleanup to ensure JSON parsing
         if "```json" in text:
@@ -195,7 +201,11 @@ Your goal is to answer the user's question using the provided context.
 # USER QUESTION
 {user_input}
 """
-        response = await asyncio.to_thread(model.generate_content, system_instruction)
+        response = await asyncio.to_thread(
+            model.generate_content, 
+            system_instruction,
+            request_options={'retry': retry.Retry(predicate=lambda x: False)}
+        )
         return {"response": response.text}
         
     except Exception as e:
