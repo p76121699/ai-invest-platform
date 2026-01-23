@@ -135,8 +135,13 @@ async def get_ai_assistant_response(user_input: str, db: AsyncSession):
             
         result = await db.execute(query)
         news_items = result.scalars().all()
-        
+        print(f"[DEBUG] Search '{search_term or ticker}' -> Found {len(news_items)} items")
+
+        # Fallback logic: If specific search yielded nothing, show General News
         if not news_items and (search_term or ticker):
+             context_str += f"(No specific news found for '{search_term or ticker}', showing latest general headlines)\n"
+             result = await db.execute(select(models.News).order_by(models.News.published_at.desc()).limit(5))
+             news_items = result.scalars().all()
              context_str += f"(No specific news found for '{search_term or ticker}', showing latest general headlines)\n"
              result = await db.execute(select(models.News).order_by(models.News.published_at.desc()).limit(5))
              news_items = result.scalars().all()
@@ -156,10 +161,14 @@ async def get_ai_assistant_response(user_input: str, db: AsyncSession):
             elif not content_body:
                 content_body = "(No content available)"
 
+            print(f"[DEBUG] Adding News to Context: {n.title} (Len: {len(content_body)})")
             context_str += f"- [{date_str}] Title: {n.title}\n  Sentiment: {n.sentiment}\n  Summary: {content_body}\n\n"
             
     except Exception as db_err:
         print(f"Context Fetch Error: {db_err}")
+    
+    # DEBUG: Print full context to see what LLM sees
+    print(f"--- [DEBUG] FINAL CONTEXT ---\n{context_str}\n-----------------------------")
 
     # --- Step 4: Generate Final Response ---
     try:
