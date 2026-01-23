@@ -150,14 +150,19 @@ async def get_ai_assistant_response(user_input: str, db: AsyncSession):
             date_str = n.published_at.strftime('%Y-%m-%d') if n.published_at else "N/A"
             
             # Prepare content/summary
-            content_body = n.summary
-            if not content_body and n.content_html:
-                # Strip HTML tags for clean text context
-                content_body = re.sub(r'<[^>]+>', '', n.content_html)
-                
-            # Truncate to avoid context overflow (e.g., 500 chars)
-            if content_body and len(content_body) > 500:
-                content_body = content_body[:500] + "..."
+            # PRIORITY CHANGE: Try to get full content from content_html first, as RSS summary is often too short.
+            content_body = ""
+            if n.content_html:
+                content_body = re.sub(r'<[^>]+>', '', n.content_html).strip()
+            
+            # Fallback to summary if content extraction failed or is too short
+            if not content_body or len(content_body) < 50:
+                content_body = n.summary or ""
+
+            # Truncate to avoid context overflow 
+            # Increased limit to 1000 chars to ensure details (like "four pillars") are included
+            if content_body and len(content_body) > 1000:
+                content_body = content_body[:1000] + "..."
             elif not content_body:
                 content_body = "(No content available)"
 
