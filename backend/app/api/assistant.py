@@ -130,7 +130,20 @@ async def get_ai_assistant_response(user_input: str, db: AsyncSession):
 
         for n in news_items:
             date_str = n.published_at.strftime('%Y-%m-%d') if n.published_at else "N/A"
-            context_str += f"- [{date_str}] {n.title} (Sentiment: {n.sentiment})\n"
+            
+            # Prepare content/summary
+            content_body = n.summary
+            if not content_body and n.content_html:
+                # Strip HTML tags for clean text context
+                content_body = re.sub(r'<[^>]+>', '', n.content_html)
+                
+            # Truncate to avoid context overflow (e.g., 500 chars)
+            if content_body and len(content_body) > 500:
+                content_body = content_body[:500] + "..."
+            elif not content_body:
+                content_body = "(No content available)"
+
+            context_str += f"- [{date_str}] Title: {n.title}\n  Sentiment: {n.sentiment}\n  Summary: {content_body}\n\n"
             
     except Exception as db_err:
         print(f"Context Fetch Error: {db_err}")
