@@ -31,7 +31,7 @@ async def get_ai_assistant_response(user_input: str, db: AsyncSession):
     intent_data = {"ticker": None, "search_term": None, "language": "Traditional Chinese"}
     
     try:
-        model = genai.GenerativeModel('gemini-2.0-flash-lite-001')
+        model = genai.GenerativeModel('gemini-2.5-flash-lite')
         intent_prompt = f"""
         Analyze the following user query and extract key information in JSON format.
         
@@ -189,7 +189,7 @@ async def get_ai_assistant_response(user_input: str, db: AsyncSession):
     # --- Step 4: Generate Final Response ---
     try:
         # Revert to stable model that supports tools
-        model = genai.GenerativeModel('gemini-2.5-computer-use-preview-10-2025')
+        model = genai.GenerativeModel('gemini-2.5-flash-lite')
         
         system_instruction = f"""
 # ROLE & TASK
