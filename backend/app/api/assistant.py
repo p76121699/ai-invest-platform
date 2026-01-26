@@ -195,6 +195,23 @@ async def get_ai_assistant_response(user_input: str, db: AsyncSession):
 
         # Initialize Client
         client = client_genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+
+        system_instruction = f"""
+# ROLE & TASK
+You are an expert financial analyst AI for the 'AI Invest Platform'.
+Your goal is to answer the user's question using the provided context.
+
+# STRICT CONSTRAINTS
+1. **LANGUAGE**: You MUST answer in {user_lang}. Do NOT use English if the user asked in Chinese.
+2. **DATA**: Priority 1: Use provided Real-time Market Data and Local News. Priority 2: If local data is insufficient, use Google Search to find relevant latest information.
+3. **HONESTY**: If you don't have the data (and Google Search fails), say "I couldn't retrieve the data" in {user_lang}.
+
+# CONTEXT
+{context_str}
+
+# USER QUESTION
+{user_input}
+"""
         
         # Configure Tools
         tools_config = []
