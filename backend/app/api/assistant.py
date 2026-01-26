@@ -214,18 +214,11 @@ Your goal is to answer the user's question using the provided context.
                 # Use strict proto structure for Google Search Grounding
                 tools = [
                     genai.protos.Tool(
-                        google_search_retrieval=genai.protos.GoogleSearchRetrieval(
-                            dynamic_retrieval_config=genai.protos.DynamicRetrievalConfig(
-                                mode=genai.protos.DynamicRetrievalConfig.Mode.MODE_DYNAMIC,
-                                dynamic_threshold=0.3,
-                            )
-                        )
+                        google_search=genai.protos.GoogleSearch() # The error message specifically requested 'google_search' tool
                     )
                 ]
             except AttributeError:
-                # Fallback for older SDK versions that might not have protos exposed directly or structure differs
-                # But 'google_search' string failed, so we must try object.
-                # Simplest fallback:
+                # Fallback: if SDK version is mismatched, try the dict approach which some versions accept
                 tools = [{'google_search': {}}]
             
             print(f"[DEBUG] Enabling Gemini Grounding (Google Search) for query: {search_term or ticker}")
