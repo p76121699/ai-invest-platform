@@ -210,7 +210,7 @@ Your goal is to answer the user's question using the provided context.
         # Configure Tools dynamically
         tools = []
         if enable_google_search:
-            tools = 'google_search_retrieval'
+            tools = 'google_search'
             print(f"[DEBUG] Enabling Gemini Grounding (Google Search) for query: {search_term or ticker}")
 
         response = await asyncio.to_thread(
