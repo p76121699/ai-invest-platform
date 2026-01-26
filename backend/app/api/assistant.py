@@ -208,15 +208,32 @@ Your goal is to answer the user's question using the provided context.
 {user_input}
 """
         # Configure Tools dynamically
-        tools = []
+        tools = None
         if enable_google_search:
-            tools = 'google_search'
+            try:
+                # Use strict proto structure for Google Search Grounding
+                tools = [
+                    genai.protos.Tool(
+                        google_search_retrieval=genai.protos.GoogleSearchRetrieval(
+                            dynamic_retrieval_config=genai.protos.DynamicRetrievalConfig(
+                                mode=genai.protos.DynamicRetrievalConfig.Mode.MODE_DYNAMIC,
+                                dynamic_threshold=0.3,
+                            )
+                        )
+                    )
+                ]
+            except AttributeError:
+                # Fallback for older SDK versions that might not have protos exposed directly or structure differs
+                # But 'google_search' string failed, so we must try object.
+                # Simplest fallback:
+                tools = [{'google_search': {}}]
+            
             print(f"[DEBUG] Enabling Gemini Grounding (Google Search) for query: {search_term or ticker}")
 
         response = await asyncio.to_thread(
             model.generate_content, 
             system_instruction,
-            tools=tools if enable_google_search else None,
+            tools=tools,
             request_options={'retry': retry.Retry(predicate=lambda x: False)}
         )
         return {"response": response.text}
