@@ -18,7 +18,17 @@ def fetch_yfinance_sync(ticker: str, period: str = "1y", interval: str = "1d", s
             return data
             
     try:
-        stock = yf.Ticker(ticker)
+        # 1. Try to use curl_cffi for browser impersonation (Strong Anti-Bot)
+        session = None
+        try:
+            from curl_cffi import requests as cffi_requests
+            session = cffi_requests.Session(impersonate="chrome")
+        except ImportError:
+            pass
+
+        # 2. Initialize Ticker with the session (if available)
+        stock = yf.Ticker(ticker, session=session)
+        
         # Assuming run_backtest and get_stock_data use consistent arguments
         if start and end:
             df = stock.history(start=start, end=end, interval=interval)
@@ -29,7 +39,7 @@ def fetch_yfinance_sync(ticker: str, period: str = "1y", interval: str = "1d", s
         if df.empty and ticker.isdigit() and len(ticker) == 4:
             retry_ticker = f"{ticker}.TW"
             print(f"Retrying with {retry_ticker}")
-            stock = yf.Ticker(retry_ticker)
+            stock = yf.Ticker(retry_ticker, session=session)
             if start and end:
                 df = stock.history(start=start, end=end, interval=interval)
             else:

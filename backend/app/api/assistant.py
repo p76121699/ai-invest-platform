@@ -143,12 +143,17 @@ async def get_ai_assistant_response(user_input: str, db: AsyncSession):
         news_items = result.scalars().all()
         print(f"[DEBUG] Search '{search_term or ticker}' -> Found {len(news_items)} items")
 
-        # Fallback logic: If specific search yielded nothing, show General News
+        enable_google_search = False
+        
+        # Fallback logic: If specific search yielded nothing, show General News BUT enable Google Search
         if not news_items and (search_term or ticker):
-             context_str += f"(No specific news found for '{search_term or ticker}', showing latest general headlines)\n"
-             result = await db.execute(select(models.News).order_by(models.News.published_at.desc()).limit(5))
+             enable_google_search = True
+             context_str += f"(No specific news found in local DB for '{search_term or ticker}', enabling Google Search...)\n"
+             result = await db.execute(select(models.News).order_by(models.News.published_at.desc()).limit(3))
              news_items = result.scalars().all()
-             context_str += f"(No specific news found for '{search_term or ticker}', showing latest general headlines)\n"
+        
+        elif not news_items:
+             # Just general news if no search term
              result = await db.execute(select(models.News).order_by(models.News.published_at.desc()).limit(5))
              news_items = result.scalars().all()
 
@@ -183,7 +188,8 @@ async def get_ai_assistant_response(user_input: str, db: AsyncSession):
 
     # --- Step 4: Generate Final Response ---
     try:
-        model = genai.GenerativeModel('gemini-2.0-flash-lite-001')
+        # Revert to stable model that supports tools
+        model = genai.GenerativeModel('gemini-2.5-computer-use-preview-10-2025')
         
         system_instruction = f"""
 # ROLE & TASK
@@ -192,8 +198,8 @@ Your goal is to answer the user's question using the provided context.
 
 # STRICT CONSTRAINTS
 1. **LANGUAGE**: You MUST answer in {user_lang}. Do NOT use English if the user asked in Chinese.
-2. **DATA**: Use the provided Real-time Market Data and News.
-3. **HONESTY**: If you don't have the data (e.g. stock price is missing), say "I couldn't retrieve the real-time data for [Company]" in {user_lang}, do not make up numbers.
+2. **DATA**: Priority 1: Use provided Real-time Market Data and Local News. Priority 2: If local data is insufficient, use Google Search to find relevant latest information.
+3. **HONESTY**: If you don't have the data (and Google Search fails), say "I couldn't retrieve the data" in {user_lang}.
 
 # CONTEXT
 {context_str}
@@ -201,9 +207,16 @@ Your goal is to answer the user's question using the provided context.
 # USER QUESTION
 {user_input}
 """
+        # Configure Tools dynamically
+        tools = []
+        if enable_google_search:
+            tools = 'google_search_retrieval'
+            print(f"[DEBUG] Enabling Gemini Grounding (Google Search) for query: {search_term or ticker}")
+
         response = await asyncio.to_thread(
             model.generate_content, 
             system_instruction,
+            tools=tools if enable_google_search else None,
             request_options={'retry': retry.Retry(predicate=lambda x: False)}
         )
         return {"response": response.text}
