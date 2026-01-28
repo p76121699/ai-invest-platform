@@ -152,6 +152,7 @@ def clean_html_static(html_content):
 
         # 5. Extract only Paragraphs, Headers, and Images (Allowlisting)
         clean_content = []
+        seen_lines = set()
         for tag in target.find_all(['p', 'div', 'h2', 'h3', 'blockquote', 'img']):
             # Special handling for images
             if tag.name == 'img':
@@ -166,7 +167,8 @@ def clean_html_static(html_content):
                 clean_content.append(f'<img src="{src}" class="w-full rounded-lg my-4" alt="{tag.get("alt", "")}" />')
                 continue
 
-            text = tag.get_text().strip()
+            # Use separator to avoid "HelloWorld" effect when spans are concatenated
+            text = tag.get_text(separator=" ", strip=True)
             if not text:
                 continue
             
@@ -176,17 +178,22 @@ def clean_html_static(html_content):
                 # Skip divs that contain mostly links
                 if len(tag.find_all('a')) > 0 and len(text) < 100:
                     continue
-                # NEW: Skip DIVs that contain paragraph tags (they are likely wrappers, not paragraphs themselves)
+                # NEW: Skip DIVs that contain paragraph tags
                 if tag.find('p'):
                     continue
             
             # Filter repeated short lines (Author spam)
             if len(text) < 40 and "TechCrunch" not in text: 
                  # Only strict filter for very short lines in English content
-                 # Chinese content can be short, so we check unicode.
                  is_english = all(ord(c) < 128 for c in text.replace(' ', ''))
                  if is_english:
                      continue
+            
+            # Deduplication: If we have seen this exact text line before, skip it.
+            # This fixes issues where "2026/01/28 16:19" appears multiple times.
+            if text in seen_lines:
+                continue
+            seen_lines.add(text)
 
             # Logic to keep the tag structure but strip attributes (classes/styles)
             tag_name = tag.name if tag.name != 'div' else 'p'
