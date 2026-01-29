@@ -224,7 +224,7 @@ async def fetch_rss_xml(client, url):
         return None
 
 async def fetch_and_process_news(db: AsyncSession):
-    log_debug("Starting Playwright Crawler...")
+    log_debug("Starting Crawler (HTTPX)...")
     
     # 1. Fetch RSS XMLs using HTTPX (Fast)
     headers = {

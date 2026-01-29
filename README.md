@@ -35,7 +35,7 @@ It integrates news sentiment analysis, technical indicators, strategy backtestin
 ### Backend
 *   **Framework**: [FastAPI](https://fastapi.tiangolo.com/) (Python)
 *   **Database**: SQLite (Dev) / PostgreSQL (Prod) via SQLAlchemy (Async)
-*   **Crawler**: Playwright + Beautiful Soup
+*   **Crawler**: HTTPX + Beautiful Soup (Lightweight, Non-blocking)
 *   **Task Queue**: Celery + Redis (for background crawling)
 *   **Data Sources**: `yfinance`, RSS Feeds
 

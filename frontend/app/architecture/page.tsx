@@ -72,7 +72,7 @@ export default function ArchitecturePage() {
                     <ServiceNode
                         title="Crawler Service"
                         icon={<Newspaper className="w-4 h-4 text-orange-500" />}
-                        description="Playwright Worker"
+                        description="HTTPX Worker"
                         details={["User-Agent Rotation", "Exp. Backoff", "RSS Parsing"]}
                         color="orange"
                         width="w-48"
