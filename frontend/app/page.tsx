@@ -10,22 +10,46 @@ import { API_URL } from "@/lib/auth"
 
 export default function Dashboard() {
   const [news, setNews] = useState<any[]>([])
+  const [stats, setStats] = useState<any>(null)
 
   useEffect(() => {
-    async function fetchTopNews() {
+    async function fetchData() {
       try {
-        const res = await axios.get(`${API_URL}/news?limit=3`)
-        if (Array.isArray(res.data)) {
-          setNews(res.data)
-        } else if (res.data.news) {
-          setNews(res.data.news)
+        const [newsRes, statsRes] = await Promise.all([
+          axios.get(`${API_URL}/news?limit=3`),
+          axios.get(`${API_URL}/dashboard/stats`)
+        ])
+
+        if (Array.isArray(newsRes.data)) {
+          setNews(newsRes.data)
+        } else if (newsRes.data.news) {
+          setNews(newsRes.data.news)
         }
+
+        if (statsRes.data) {
+          setStats(statsRes.data)
+        }
+
       } catch (e) {
-        console.error("Failed to load dashboard news", e)
+        console.error("Failed to load dashboard data", e)
       }
     }
-    fetchTopNews()
+    fetchData()
   }, [])
+
+  // Default / Loading State
+  const sentimentVal = stats ? stats.sentiment.value : "Neutral"
+  const sentimentSub = stats ? `Based on ${stats.sentiment.article_count} articles` : "Loading..."
+
+  const moversVal = stats && stats.top_movers.length > 0
+    ? `${stats.top_movers[0].ticker} ${stats.top_movers[0].change_percent > 0 ? '+' : ''}${stats.top_movers[0].change_percent}%`
+    : "Loading..."
+  const moversSub = stats && stats.top_movers.length > 1
+    ? `${stats.top_movers[1].ticker} ${stats.top_movers[1].change_percent > 0 ? '+' : ''}${stats.top_movers[1].change_percent}%`
+    : ""
+
+  const vixVal = stats ? stats.volatility.value : "Loading..."
+  const vixSub = stats ? stats.volatility.label : ""
 
   return (
     <div className="space-y-8">
@@ -39,22 +63,22 @@ export default function Dashboard() {
         <SummaryCard
           title="Market Sentiment"
           icon={TrendingUp}
-          value="Neutral"
-          sub="Based on 60 articles"
-          trend="positive"
+          value={sentimentVal}
+          sub={sentimentSub}
+          trend={sentimentVal === "Bullish" ? "positive" : sentimentVal === "Bearish" ? "negative" : "neutral"}
         />
         <SummaryCard
           title="Top Movers"
           icon={Zap}
-          value="NVDA +5.2%"
-          sub="TSLA -2.1%"
+          value={moversVal}
+          sub={moversSub}
           trend="mixed"
         />
         <SummaryCard
           title="Volatility Index"
           icon={Activity}
-          value="18.4"
-          sub="Low Volatility"
+          value={vixVal}
+          sub={vixSub}
           trend="neutral"
         />
       </div>
