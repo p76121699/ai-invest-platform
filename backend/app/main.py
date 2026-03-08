@@ -25,6 +25,10 @@ async def lifespan(app: FastAPI):
         if engine.dialect.name == "postgresql":
             await conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm;"))
         await conn.run_sync(Base.metadata.create_all)
+        
+        # Create GIN index manually after table creation to ensure pg_trgm exists
+        if engine.dialect.name == "postgresql":
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_news_title_gin ON news USING gin (title gin_trgm_ops);"))
     
     # Startup
     scheduler.add_job(scheduled_news_crawl, 'interval', minutes=60)

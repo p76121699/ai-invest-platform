@@ -31,10 +31,8 @@ class News(Base):
     source = Column(String(50)) # Kept for compatibility/tracking
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
-    __table_args__ = (
-        Index('ix_news_title_gin', 'title', postgresql_using='gin', postgresql_ops={'title': 'gin_trgm_ops'}),
-    )
-
+    # Index created manually in main.py to avoid pg_trgm extension errors
+    pass
 class BacktestRun(Base):
     __tablename__ = "backtest_runs"
 
