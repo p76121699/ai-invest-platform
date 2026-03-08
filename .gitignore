@@ -81,3 +81,7 @@ presentation_suggestion.md
 presentation_script_short.md
 memory_debug_report.md
 面試簡報.pdf
+TEST_LIFESPAN.py
+sql_app.db
+sql_app.db-wal
+sql_app.db-shm
