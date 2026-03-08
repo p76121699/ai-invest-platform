@@ -19,7 +19,11 @@ async def scheduled_news_crawl():
 async def lifespan(app: FastAPI):
     # Create Tables (Simple migration alternative for MVP)
     from app.database import engine, Base
+    from sqlalchemy import text
     async with engine.begin() as conn:
+        # Require pg_trgm extension for GIN index on News title (PostgreSQL only)
+        if engine.dialect.name == "postgresql":
+            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm;"))
         await conn.run_sync(Base.metadata.create_all)
     
     # Startup
